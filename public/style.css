@@ -1,0 +1,1582 @@
+/* ==========================================================================
+   Suivi de candidatures — feuille de styles unique
+   --------------------------------------------------------------------------
+   Identité visuelle : minimaliste, chaleureuse, posée.
+   Crème et ivoire pour les surfaces, sable pour les filets, terracotta pour
+   l'accent, brun chaud pour le texte. Pas de dégradé, pas de flou, pas de
+   couleur néon : la hiérarchie vient de l'espace, du contraste et de la
+   typographie — pas de la décoration.
+
+   Tout part des jetons ci-dessous. Changer une couleur = changer un jeton.
+   ========================================================================== */
+
+:root {
+  /* Les contrôles natifs (scrollbars, calendriers, cases à cocher) suivent le thème
+     de l'application, pas celui du système : sinon on obtient une scrollbar sombre
+     dans une modale claire. */
+  color-scheme: light;
+
+  /* ---------- Surfaces & encre (clair) ---------- */
+  --bg: #f7f3ec;            /* fond de page : blanc cassé, jamais blanc pur */
+  --bg-elev: #f1ebe1;       /* survols, en-têtes de tableau */
+  --card: #fffcf7;          /* cartes : ivoire */
+  --card-soft: #fbf6ee;     /* surfaces secondaires dans une carte */
+  --text: #2e2a24;          /* brun-gris profond, jamais noir */
+  --text-strong: #201c17;
+  --muted: #6d6459;
+  --faint: #968b7d;
+  --border: #e8dfd1;        /* filet de sable : 1 px, très clair */
+  --border-strong: #dbd0be; /* filet des contrôles */
+
+  /* ---------- Accent : terracotta ---------- */
+  --primary: #b1552c;
+  --primary-hover: #98461f;
+  --primary-soft: #f7ebe2;
+  --primary-ink: #fffaf4;
+  --ring: rgba(177, 85, 44, 0.18);
+
+  /* ---------- Tons sémantiques (tous chauds, tous retenus) ---------- */
+  --ok: #4f7a52;       --ok-bg: #edf3ea;
+  --info: #4a6570;     --info-bg: #eaf0f1;
+  --warn: #a2662b;     --warn-bg: #f9efe1;
+  --warn-line: #d9b27d;   /* filet du bloc « note » */
+  --warn-border: #e7d2ae; /* bordure des bandeaux et cartes de relance */
+  --danger: #a4442c;   --danger-bg: #f8eae4;
+  --neutral: #6d6459;  --neutral-bg: #f2ece2;
+  --accent: #8a5a4a;   --accent-bg: #f6ece7;
+
+  /* ---------- Série des graphiques ---------- */
+  --chart-1: #b1552c;
+  --chart-2: #c58b4e;
+  --chart-3: #4f7a52;
+  --chart-4: #8a5a4a;
+  --chart-5: #4a6570;
+  --chart-6: #a2662b;
+  --chart-7: #9c8b76;
+
+  /* ---------- Formes ---------- */
+  --radius-lg: 14px;
+  --radius: 11px;
+  --radius-sm: 8px;
+  --radius-xs: 6px;
+  --radius-pill: 999px;
+
+  /* Ombres : teintées de brun, à la limite du perceptible. */
+  --shadow-xs: 0 1px 1px rgba(63, 48, 34, 0.04);
+  --shadow-sm: 0 1px 2px rgba(63, 48, 34, 0.05), 0 1px 1px rgba(63, 48, 34, 0.03);
+  --shadow-md: 0 4px 14px rgba(63, 48, 34, 0.07), 0 1px 2px rgba(63, 48, 34, 0.05);
+  --shadow-lg: 0 18px 44px rgba(52, 38, 26, 0.16);
+
+  /* ---------- Texte ---------- */
+  --font: "Inter", "SF Pro Text", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+
+  --bar-h: 68px;
+  --ease: cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #1a1613;
+  --bg-elev: #2b241d;
+  --card: #241f19;
+  --card-soft: #2b241d;
+  --text: #ece3d8;
+  --text-strong: #f8f2e9;
+  --muted: #a89a8a;
+  --faint: #8a7d6d;
+  --border: #383028;
+  --border-strong: #4b4136;
+
+  --primary: #e0936a;
+  --primary-hover: #efa982;
+  --primary-soft: #3a2a1d;
+  --primary-ink: #22170f;
+  --ring: rgba(224, 147, 106, 0.22);
+
+  /* Surfaces sombres opaques : une teinte translucide posée sur une ligne se
+     composerait avec ce qu'il y a derrière (le blanc du moteur de tableau, par
+     exemple) et donnerait une ligne claire dans un tableau sombre. */
+  --ok: #8fc092;       --ok-bg: #232a20;
+  --info: #9dbcc4;     --info-bg: #222a2c;
+  --warn: #dfa869;     --warn-bg: #32281a;
+  --warn-line: rgba(223, 168, 105, 0.5);
+  --warn-border: rgba(223, 168, 105, 0.32);
+  --danger: #e8937c;   --danger-bg: #31221c;
+  --neutral: #b3a695;  --neutral-bg: #2b241d;
+  --accent: #d0a08c;   --accent-bg: #2f251c;
+
+  --chart-1: #e0936a;
+  --chart-2: #d8a86a;
+  --chart-3: #8fc092;
+  --chart-4: #c99884;
+  --chart-5: #9dbcc4;
+  --chart-6: #c98f5c;
+  --chart-7: #b3a695;
+
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 22px 50px rgba(0, 0, 0, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* ---------- Barres de défilement discrètes ---------- */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+/* Chromium / WebKit : pouce fin, piste transparente, pas de flèches */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background-color: var(--border-strong);
+  background-clip: content-box;
+  border: 3px solid transparent;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover { background-color: var(--faint); }
+::-webkit-scrollbar-button { display: none; }
+::-webkit-scrollbar-corner { background: transparent; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1, h2, h3 { line-height: 1.3; font-weight: 600; color: var(--text-strong); }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-hover); text-decoration: underline; text-underline-offset: 2px; }
+
+/* Le focus clavier reste net, mais il suit la couleur d'accent. */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.small { font-size: 0.82rem; }
+.spacer { flex: 1; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: 12px; top: -60px;
+  z-index: 100; padding: 10px 14px;
+  background: var(--card); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  transition: top 0.15s var(--ease);
+}
+.skip-link:focus { top: 12px; }
+
+/* ==========================================================================
+   Icônes
+   --------------------------------------------------------------------------
+   Un seul jeu : le sprite SVG en tête de page. La classe `.ico` en impose la
+   taille et le trait ; les dessins eux-mêmes ne portent aucune couleur, ils
+   héritent — d'où un rendu identique dans tous les contextes.
+   ========================================================================== */
+
+.svg-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.ico {
+  width: 18px; height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vertical-align: -0.16em;
+}
+.ico-xs { width: 15px; height: 15px; }
+.ico-sm { width: 17px; height: 17px; }
+.ico-lg { width: 21px; height: 21px; }
+
+/* ==========================================================================
+   Barre d'application
+   ========================================================================== */
+
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding: 12px 28px;
+  min-height: var(--bar-h);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+
+.brand-mark {
+  display: grid; place-items: center;
+  width: 38px; height: 38px; flex: none;
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-radius: var(--radius);
+}
+.brand-mark .ico { width: 21px; height: 21px; stroke-width: 1.5; }
+
+.brand-text { min-width: 0; }
+.brand h1 { margin: 0; font-size: 1.06rem; letter-spacing: -0.011em; }
+.brand-sub { margin: 1px 0 0; font-size: 0.81rem; color: var(--muted); }
+
+.app-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+kbd {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  line-height: 1;
+  padding: 4px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid currentColor;
+  opacity: 0.55;
+}
+.btn.primary kbd { border-color: rgba(255, 255, 255, 0.45); opacity: 0.7; }
+
+/* ==========================================================================
+   Boutons
+   --------------------------------------------------------------------------
+   Trois niveaux, pas plus : discret (fantôme), normal (filet), principal
+   (terracotta plein). La hiérarchie se lit d'un coup d'œil.
+   ========================================================================== */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--text);
+  border-radius: var(--radius-sm);
+  padding: 8px 13px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease),
+              color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.btn .ico { color: var(--muted); }
+.btn:hover { background: var(--bg-elev); border-color: var(--faint); }
+.btn:hover .ico { color: var(--text); }
+.btn:active { transform: translateY(1px); box-shadow: none; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn[aria-expanded="true"] { background: var(--bg-elev); border-color: var(--faint); }
+
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-ink);
+  font-weight: 600;
+  box-shadow: var(--shadow-xs);
+}
+.btn.primary .ico { color: currentColor; }
+.btn.primary:hover {
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
+  color: var(--primary-ink);
+}
+
+.btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+
+/* Bouton compact : actions secondaires rangées dans une liste */
+.btn.small { padding: 5px 10px; font-size: 0.8rem; gap: 6px; }
+.btn.ghost:hover { background: var(--bg-elev); color: var(--text); }
+
+.btn.danger { color: var(--danger); }
+.btn.danger .ico { color: currentColor; }
+.btn.danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+
+.btn.icon { padding: 8px; width: 36px; height: 36px; justify-content: center; }
+.btn.icon .ico { color: var(--muted); }
+.btn.icon:hover .ico { color: var(--text); }
+
+.btn.small { padding: 5px 11px; font-size: 0.8rem; gap: 6px; }
+.btn.block { width: 100%; justify-content: center; }
+
+.caret { color: var(--muted); opacity: 0.9; }
+
+/* ==========================================================================
+   Menu déroulant
+   ========================================================================== */
+
+.dropdown { position: relative; }
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  min-width: 252px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  animation: pop 0.13s var(--ease);
+}
+
+@keyframes pop {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.dropdown-menu button {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  padding: 9px 11px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: background 0.13s var(--ease);
+}
+.dropdown-menu button .ico { margin-top: 1px; color: var(--muted); }
+.dropdown-menu button:hover { background: var(--card-soft); }
+.dropdown-menu button:hover .ico { color: var(--primary); }
+.dropdown-menu .hint { display: block; color: var(--faint); font-size: 0.76rem; }
+
+/* Rappel de la sélection dans le menu « Exporter » (PDF/CSV suivent les filtres) */
+.menu-note {
+  margin: 0 0 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-xs);
+  background: var(--card-soft);
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+.menu-note.alerting { color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+
+.columns-menu { padding: 8px; width: 252px; }
+.columns-menu label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 6px 8px;
+  border-radius: var(--radius-xs);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.13s var(--ease);
+}
+.columns-menu label:hover { background: var(--card-soft); }
+.columns-menu input { accent-color: var(--primary); }
+
+/* ==========================================================================
+   Structure
+   ========================================================================== */
+
+main {
+  max-width: 1460px;
+  margin: 0 auto;
+  padding: 22px 28px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================================================
+   Vue d'ensemble
+   ========================================================================== */
+
+.overview { display: flex; flex-direction: column; gap: 14px; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: 14px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 15px 16px 14px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  transition: border-color 0.15s var(--ease), background 0.15s var(--ease),
+              box-shadow 0.15s var(--ease);
+}
+/* Seules les cartes qui filtrent réellement la liste sont cliquables :
+   « Candidatures » et « Taux de réponse » restent des indicateurs. */
+.stat[data-quick] { cursor: pointer; }
+.stat[data-quick]:hover {
+  border-color: var(--border-strong);
+  background: var(--card-soft);
+  box-shadow: var(--shadow-sm);
+}
+.stat .stat-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.stat .stat-label {
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat .stat-icon { color: var(--faint); line-height: 0; }
+.stat .stat-num {
+  font-size: 1.72rem;
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  color: var(--text-strong);
+  font-variant-numeric: tabular-nums;
+}
+.stat .stat-sub { font-size: 0.76rem; color: var(--faint); }
+
+/* Carte « à relancer » : la seule qui signale un travail à faire */
+.stat.alert { border-color: var(--warn-border); }
+.stat.alert .stat-icon { color: var(--warn); }
+.stat.alert .stat-num { color: var(--warn); }
+
+/* Carte sélectionnée : un filet d'accent, sans halo criard */
+.stat[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 3px 0 0 var(--primary);
+}
+.stat[aria-pressed="true"] .stat-label { color: var(--primary); }
+.stat[aria-pressed="true"]:hover { background: var(--primary-soft); border-color: var(--primary); }
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.dashboard-card {
+  min-width: 0;
+  padding: 18px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.dashboard-wide { grid-column: 1 / -1; }
+.dashboard-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.dashboard-card h2 { margin: 0; font-size: 0.97rem; letter-spacing: -0.008em; }
+.dashboard-badge {
+  color: var(--muted);
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  padding: 3px 9px;
+  border-radius: var(--radius-xs);
+  font-size: 0.71rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.chart-wrap { position: relative; height: 224px; }
+.chart-doughnut { height: 246px; }
+
+/* ---------- Rendement de la recherche ----------
+   L'entonnoir des étapes et le rendement par source : des barres très fines, la
+   valeur en chiffres tabulaires, aucune couleur en plus que l'accent du thème. */
+.funnel {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: grid;
+  /* L'entonnoir suit la largeur que l'utilisateur donne à sa carte : quatre
+     colonnes quand elle est large, deux quand elle est étroite. */
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 10px;
+}
+.funnel-step {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 11px 12px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.funnel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.funnel-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.funnel-value { font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text-strong); }
+.funnel-bar,
+.source-bar { display: block; height: 4px; border-radius: 999px; background: var(--bg-elev); overflow: hidden; }
+.funnel-bar i,
+.source-bar i { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.funnel-share { font-size: 0.72rem; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+.insights-note { margin: 0 0 12px; }
+.insights-sources { display: flex; flex-direction: column; }
+
+/* ==========================================================================
+   Tableau de bord « bento »
+   --------------------------------------------------------------------------
+   Le plateau est une grille de six colonnes ; chaque widget en occupe une à six
+   (les classes size-N, posées par js/dashboard.js). L'ordre du DOCUMENT est
+   l'ordre affiché : ni `order`, ni coordonnées — une carte déplacée est vraiment
+   déplacée, y compris pour le clavier et les lecteurs d'écran.
+   ========================================================================== */
+
+.overview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px 16px;
+  flex-wrap: wrap;
+}
+.overview-head h2 { margin: 0; font-size: 1.06rem; letter-spacing: -0.011em; }
+.overview-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bento-item { position: relative; min-width: 0; display: flex; flex-direction: column; }
+/* Le support d'un widget ne dessine rien (ni fond, ni filet) : c'est son contenu
+   qui porte le cadre — une carte (`.card`), une carte de graphique
+   (`.dashboard-card`) ou un indicateur (`.stat`) — et il remplit la hauteur de la
+   rangée, comme lorsqu'il était lui-même la case de la grille. */
+.bento-item > *:not(.bento-bar) { flex: 1 1 auto; }
+
+.bento-item.size-1 { grid-column: span 1; }
+.bento-item.size-2 { grid-column: span 2; }
+.bento-item.size-3 { grid-column: span 3; }
+.bento-item.size-6 { grid-column: span 6; }
+
+/* ---------- La barre d'un widget ----------
+   Poignée, largeur, déplacement, retrait : elle n'existe qu'en mode
+   « Organiser ». Le reste du temps elle est hors du flux (`display: none`),
+   donc la carte est exactement celle d'avant. */
+.bento-bar { display: none; }
+
+.bento[data-edit="true"] .bento-item {
+  outline: 1px dashed var(--border-strong);
+  outline-offset: 3px;
+  border-radius: var(--radius-lg);
+}
+/* En mode « Organiser », on place des cartes, on ne clique pas dedans :
+   sans cela, chaque déplacement cocherait un filtre ou ouvrirait une fiche. */
+.bento[data-edit="true"] .bento-item > *:not(.bento-bar) { pointer-events: none; }
+
+.bento[data-edit="true"] .bento-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  margin-bottom: 8px;
+  background: var(--card-soft);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.bento-grip,
+.bento-btn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.13s var(--ease), border-color 0.13s var(--ease), color 0.13s var(--ease);
+}
+.bento-grip { cursor: grab; }
+.bento-grip:active { cursor: grabbing; }
+.bento-grip:hover,
+.bento-btn:hover { background: var(--bg-elev); border-color: var(--border-strong); color: var(--text); }
+.bento-btn.danger:hover { border-color: var(--danger); color: var(--danger); }
+.bento-grip:focus-visible,
+.bento-btn:focus-visible,
+.bento-size:focus-visible { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+
+.bento-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+/* Un indicateur porte son libellé dans sa propre carte : sa barre n'a pas à le
+   répéter, et la place gagnée revient aux commandes. */
+.bento-item.plain .bento-name { display: none; }
+
+.bento-size {
+  font: inherit;
+  font-size: 0.76rem;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  padding: 3px 5px;
+  max-width: 132px;
+}
+
+/* ---------- Pendant le glissement ----------
+   La carte saisie s'efface, et un trait d'accent marque l'endroit où elle tombera
+   — dans la gouttière, à gauche ou à droite de la carte visée. */
+.bento-item.dragging { opacity: 0.45; }
+.bento-item.drag-before::after,
+.bento-item.drag-after::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--primary);
+  z-index: 4;
+}
+.bento-item.drag-before::after { left: -9px; }
+.bento-item.drag-after::after { right: -9px; }
+
+/* Menu « Widgets » : les cases sont rangées par famille */
+.widgets-menu .menu-group {
+  margin: 9px 0 2px;
+  padding: 0 8px;
+  font-size: 0.67rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.widgets-menu .menu-group:first-child { margin-top: 2px; }
+
+/* Le nom du canal passe avant sa barre : c'est lui qui identifie la ligne, il ne
+   doit pas être coupé pour laisser respirer une barre déjà large. La barre garde
+   un minimum, et un nom exceptionnellement long s'abrège avec son title pour le
+   garder lisible à la souris. */
+.source-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto minmax(48px, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 2px;
+  border-top: 1px solid var(--border);
+}
+.source-row:first-child { border-top: none; }
+.source-name { color: var(--text); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-count { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+.source-rate { font-size: 0.78rem; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Sauvegardes (instantanés de la base) ---------- */
+.backups-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 46vh;
+  overflow-y: auto;
+  border-top: 1px solid var(--border);
+}
+.backup-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--border);
+}
+.backup-row.quiet { color: var(--muted); font-size: 0.85rem; }
+.backup-when { display: flex; flex-direction: column; gap: 2px; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+.backup-size { font-size: 0.72rem; color: var(--faint); }
+
+.alert-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 15px;
+  border: 1px solid var(--warn-border);
+  background: var(--warn-bg);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+}
+.alert-bar strong { color: var(--warn); font-weight: 600; }
+.alert-icon { color: var(--warn); }
+
+/* ==========================================================================
+   Barre d'outils (recherche, filtres, tri)
+   ========================================================================== */
+
+.toolbar { padding: 14px; display: flex; flex-direction: column; gap: 11px; }
+
+.toolbar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.toolbar-row-pills { gap: 8px; }
+
+.search-wrap { position: relative; flex: 1 1 280px; min-width: 210px; }
+
+.search-wrap .search-icon {
+  position: absolute;
+  left: 12px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--faint);
+  pointer-events: none;
+}
+
+.search-wrap input {
+  width: 100%;
+  padding: 9px 34px 9px 36px;
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.search-wrap input::placeholder { color: var(--faint); }
+.search-wrap input:hover { border-color: var(--faint); }
+.search-wrap input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.search-wrap input::-webkit-search-cancel-button { display: none; }
+
+.search-clear {
+  position: absolute;
+  right: 7px; top: 50%;
+  transform: translateY(-50%);
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: 0; border-radius: var(--radius-xs);
+  background: transparent; color: var(--muted);
+  cursor: pointer;
+  transition: background 0.13s var(--ease), color 0.13s var(--ease);
+}
+.search-clear:hover { background: var(--bg-elev); color: var(--text); }
+
+select,
+input[type="text"],
+input[type="search"],
+input[type="url"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="number"],
+textarea {
+  font-family: inherit;
+  color: var(--text);
+}
+
+.toolbar select {
+  padding: 9px 12px;
+  font-size: 0.875rem;
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.toolbar select:hover { border-color: var(--faint); }
+.toolbar select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--ring); }
+
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  transition: border-color 0.14s var(--ease), background 0.14s var(--ease), color 0.14s var(--ease);
+}
+.pill:hover { border-color: var(--border-strong); color: var(--text); }
+.pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.pill .count {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  padding: 0 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-elev);
+  color: var(--muted);
+}
+.pill[aria-pressed="true"] {
+  color: var(--primary);
+  border-color: var(--primary);
+  background: var(--primary-soft);
+}
+.pill[aria-pressed="true"] .count { background: var(--card); color: var(--primary); }
+
+.check-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: border-color 0.14s var(--ease), background 0.14s var(--ease), color 0.14s var(--ease);
+}
+.check-filter:hover { border-color: var(--border-strong); color: var(--text); }
+.check-filter input { accent-color: var(--primary); cursor: pointer; margin: 0; }
+.check-filter:has(input:checked) { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+
+/* Plage de dates : un bloc compact, mis en valeur dès qu'une borne est posée */
+.date-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px 3px 3px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  transition: border-color 0.14s var(--ease), background 0.14s var(--ease);
+}
+.date-filter:hover { border-color: var(--border-strong); }
+/* Classe posée par l'interface : une date saisie se voit immédiatement */
+.date-filter.active { border-color: var(--primary); background: var(--primary-soft); }
+.date-filter select {
+  padding: 6px 8px;
+  font-size: 0.83rem;
+  color: var(--muted);
+  border: 0;
+  background: none;
+}
+.date-filter input[type="date"] {
+  padding: 5px 7px;
+  font-size: 0.83rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  background: var(--card);
+}
+.date-sep { color: var(--faint); }
+
+/* ==========================================================================
+   Tableau
+   ========================================================================== */
+
+.table-card { overflow: hidden; display: flex; flex-direction: column; }
+
+.table-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.table-head h2 { margin: 0; font-size: 0.96rem; letter-spacing: -0.008em; }
+.table-head .muted { margin: 0; }
+
+.table-wrap { overflow-x: auto; }
+
+/* Tableau « nu » : il ne sert qu'à l'impression et aux navigateurs où le moteur
+   de tableau n'a pas pris le relais. */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  font-size: 0.71rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--bg-elev);
+}
+
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--primary); }
+th .arrow { margin-left: 4px; font-size: 0.7rem; color: var(--primary); }
+
+tbody tr { transition: background 0.12s var(--ease); }
+tbody tr:hover { background: var(--bg-elev); }
+tbody tr:last-child td { border-bottom: 0; }
+
+tbody tr.needs-followup td:first-child { box-shadow: inset 3px 0 0 var(--warn); }
+tbody tr.saving { opacity: 0.55; }
+
+td.cell-company, .tabulator-cell.cell-company { font-weight: 600; color: var(--text-strong); }
+td.cell-date, .tabulator-cell.cell-date { font-variant-numeric: tabular-nums; color: var(--muted); }
+td.cell-notes, .tabulator-cell.cell-notes { white-space: normal; max-width: 260px; }
+td.cell-contact, .tabulator-cell.cell-contact { white-space: normal; max-width: 210px; }
+td.cell-url a { font-size: 0.82rem; }
+
+/* Repère « note jointe » sur la ligne, quand la colonne Notes est masquée */
+.note-flag { color: var(--faint); cursor: help; display: inline-flex; }
+.note-flag:hover { color: var(--warn); }
+
+.move-ago { font-variant-numeric: tabular-nums; }
+.na-date { font-variant-numeric: tabular-nums; }
+
+/* ---------- Pastilles de statut ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: var(--radius-xs);
+  font-size: 0.77rem;
+  font-weight: 550;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+
+.badge.ok { background: var(--ok-bg); color: var(--ok); }
+.badge.info { background: var(--info-bg); color: var(--info); }
+.badge.warn { background: var(--warn-bg); color: var(--warn); }
+.badge.danger { background: var(--danger-bg); color: var(--danger); }
+.badge.neutral { background: var(--neutral-bg); color: var(--neutral); }
+.badge.accent { background: var(--accent-bg); color: var(--accent); }
+
+.badge-button {
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+.badge-button:hover .badge { box-shadow: 0 0 0 2px var(--ring); }
+
+/* ---------- Cellules ---------- */
+
+.tabulator-cell.editable, td.editable { cursor: pointer; }
+.tabulator-cell.editable:hover, td.editable:hover { background: var(--primary-soft); }
+
+.cell-input {
+  width: 100%;
+  min-width: 92px;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 0.875rem;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-xs);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+/* Édition d'une note : plusieurs lignes (Maj+Entrée en ajoute une) */
+textarea.cell-input {
+  min-width: 240px;
+  min-height: 64px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+/* Une cellule = un seul bloc de contenu (voir cellDisplay côté JS) */
+.cell-value { display: block; min-width: 0; }
+
+.contact-line { display: block; line-height: 1.35; }
+.contact-line + .contact-line { margin-top: 1px; }
+.contact-name { font-weight: 550; color: var(--text-strong); }
+.contact-tel, .contact-mail { font-size: 0.78rem; color: var(--muted); }
+.contact-tel { font-variant-numeric: tabular-nums; }
+
+/* Cellule « Notes » : un petit bloc « papier » (fond sable, filet à gauche)
+   plutôt qu'un texte gris qu'on survole. */
+.notes-preview {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 3px 9px 4px 8px;
+  background: var(--warn-bg);
+  border-left: 2px solid var(--warn-line);
+  border-radius: 0 var(--radius-xs) var(--radius-xs) 0;
+  color: var(--text);
+  font-size: 0.83rem;
+  line-height: 1.38;
+}
+.notes-icon { flex: none; color: var(--warn); line-height: 1.5; }
+
+/* Aperçu limité à 3 lignes ; le survol (title) et la modale donnent le texte entier */
+.notes-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Actions de ligne ---------- */
+
+/* C'est une VRAIE cellule de tableau, donc surtout PAS de `display: flex` sur le <td> :
+   un <td> qui n'est plus une cellule ne remplit plus la hauteur de la ligne et le filet
+   se dessinait au milieu du tableau. L'alignement à droite passe par le texte
+   (`font-size: 0` supprime l'espace blanc entre deux balises). */
+.row-actions { text-align: right; white-space: nowrap; font-size: 0; }
+.row-actions .icon-btn { display: inline-grid; vertical-align: middle; }
+.row-actions .icon-btn + .icon-btn { margin-left: 4px; }
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px; height: 30px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.14s var(--ease), color 0.14s var(--ease), border-color 0.14s var(--ease);
+}
+.icon-btn .ico { width: 17px; height: 17px; }
+.icon-btn:hover { background: var(--card-soft); color: var(--text); border-color: var(--border); }
+.icon-btn.danger:hover { background: var(--danger-bg); color: var(--danger); border-color: transparent; }
+
+/* ---------- États vides & chargement ---------- */
+
+.empty { padding: 56px 24px 60px; text-align: center; color: var(--muted); }
+.empty-icon { display: inline-block; width: 32px; height: 32px; margin: 0 0 12px; color: var(--faint); }
+.empty-title { margin: 0; font-weight: 600; color: var(--text-strong); font-size: 1rem; }
+.empty .btn { margin-top: 16px; }
+.empty-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+.skeleton { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+/* Pas de dégradé animé : une respiration d'opacité, plus calme et plus légère. */
+.skeleton-row {
+  height: 14px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-elev);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+.skeleton-row:nth-child(2) { width: 88%; }
+.skeleton-row:nth-child(3) { width: 74%; }
+.skeleton-row:nth-child(4) { width: 92%; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ==========================================================================
+   Modales
+   ========================================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(45, 33, 24, 0.42);
+  animation: fade 0.15s var(--ease);
+  overflow-y: auto;
+}
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  width: 100%;
+  max-width: 720px;
+  max-height: min(92vh, 960px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  padding: 24px 26px 22px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  animation: rise 0.2s var(--ease);
+}
+.modal-narrow { max-width: 470px; }
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.modal-head h2 { margin: 0; font-size: 1.1rem; letter-spacing: -0.012em; }
+.modal-head p { margin: 3px 0 0; }
+
+.confirm-text { margin: 0 0 4px; color: var(--text); }
+
+form fieldset {
+  border: 0;
+  border-top: 1px solid var(--border);
+  padding: 4px 0 0;
+  margin: 0;
+}
+form fieldset:first-of-type { border-top: 0; }
+
+form legend {
+  padding: 14px 0 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+form label {
+  display: block;
+  margin-bottom: 13px;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.grid label.col-span-2 { grid-column: 1 / -1; }
+
+form input,
+form select,
+form textarea {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 9px 11px;
+  font-size: 0.91rem;
+  font-weight: 400;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+form textarea { resize: vertical; line-height: 1.5; }
+
+form input::placeholder,
+form textarea::placeholder { color: var(--faint); }
+
+form input:hover,
+form select:hover,
+form textarea:hover { border-color: var(--faint); }
+
+form input:focus,
+form select:focus,
+form textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+form input:invalid:not(:placeholder-shown) { border-color: var(--danger); }
+
+/* Case à cocher sur sa propre ligne (page de garde du PDF) :
+   sans ça, `form input { width: 100% }` étire la case sur toute la largeur. */
+form label.check-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+form label.check-line input[type="checkbox"] {
+  width: auto;
+  flex: none;
+  margin: 0;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.field-hint { display: block; margin-top: 5px; font-size: 0.75rem; font-weight: 400; color: var(--faint); line-height: 1.45; }
+.field-hint.warn { color: var(--warn); }
+
+.form-error {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  font-size: 0.84rem;
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-left: 2px solid var(--danger);
+  border-radius: var(--radius-xs);
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);}
+
+
+
+.import-options { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 4px; }
+.import-option {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px 13px;
+  font-size: 0.87rem;
+  line-height: 1.45;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.14s var(--ease), border-color 0.14s var(--ease);
+}
+.import-option:hover { background: var(--card-soft); }
+.import-option input { margin: 3px 0 0; width: auto; accent-color: var(--primary); }
+.import-option:has(input:checked) { border-color: var(--primary); background: var(--primary-soft); }
+
+.history-box { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
+.history-box h3 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.history-box ol {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  border-left: 2px solid var(--border);
+}
+.history-box li { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 0.84rem; }
+
+/* ==========================================================================
+   Notifications (toasts)
+   ========================================================================== */
+
+.toasts {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: min(400px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  font-size: 0.87rem;
+  line-height: 1.45;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  animation: slide-in 0.19s var(--ease);
+}
+.toast.ok { border-left-color: var(--ok); }
+.toast.warn { border-left-color: var(--warn); }
+.toast.error { border-left-color: var(--danger); }
+.toast .toast-icon { line-height: 1.35; color: var(--muted); }
+.toast.ok .toast-icon { color: var(--ok); }
+.toast.warn .toast-icon { color: var(--warn); }
+.toast.error .toast-icon { color: var(--danger); }
+.toast .toast-body { flex: 1; }
+.toast .toast-close {
+  border: 0; background: none; cursor: pointer;
+  color: var(--faint); padding: 2px; border-radius: var(--radius-xs); line-height: 1;
+}
+.toast .toast-close:hover { color: var(--text); background: var(--bg-elev); }
+.toast.leaving { animation: slide-out 0.17s ease-in forwards; }
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes slide-out {
+  to { opacity: 0; transform: translateX(18px); }
+}
+
+/* --------------------------------------------------------------------------
+   Tabulator : le moteur gère le DOM, ces règles lui donnent le design de l'app.
+   -------------------------------------------------------------------------- */
+.tabulator-wrap { overflow: hidden; }
+.tabulator {
+  border: 0;
+  background: var(--card);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.875rem;
+}
+.tabulator .tabulator-header {
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elev);
+  color: var(--muted);
+  font-weight: 600;
+}
+.tabulator .tabulator-header .tabulator-col {
+  min-height: 44px;
+  border-right: 1px solid var(--border);
+  background: var(--bg-elev);
+  font-size: 0.71rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tabulator .tabulator-header .tabulator-col:last-child { border-right: 0; }
+.tabulator .tabulator-header .tabulator-col .tabulator-col-content { padding: 12px 14px; }
+.tabulator .tabulator-header .tabulator-col:hover { background: var(--card-soft); color: var(--primary); }
+.tabulator .tabulator-tableholder { overflow-x: auto; background: var(--card); }
+/* Fond des surfaces du tableau : on les peint explicitement, sinon le moteur
+   impose ses propres blancs (#fff, #efefef) qui transparaissent sous une ligne
+   translucide ou derrière une ligne dont la classe change. */
+.tabulator .tabulator-tableholder .tabulator-table { background-color: var(--card); color: var(--text); }
+.tabulator .tabulator-row {
+  min-height: 48px;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--card);
+  color: var(--text);
+  transition: background 0.12s var(--ease);
+}
+.tabulator .tabulator-row.tabulator-row-even { background-color: var(--card); }
+.tabulator .tabulator-row:hover { background-color: var(--bg-elev); }
+.tabulator .tabulator-row:last-child { border-bottom: 0; }
+/* Ligne « à relancer » : au repos, elle garde la MÊME surface que les autres —
+   c'est le filet d'accent à gauche et la pastille d'ancienneté (+22 j) qui portent
+   l'information. Une teinte pleine sur toute la ligne ajoutait un troisième repère
+   pour la même chose et cassait le rythme du tableau. La teinte apparaît au survol,
+   quand on s'intéresse vraiment à la ligne. */
+.tabulator .tabulator-row.needs-followup { background-color: var(--card); }
+.tabulator .tabulator-row.needs-followup:hover { background-color: var(--warn-bg); }
+
+/* Le filet est dessiné sur la LIGNE, pas sur sa première cellule : les colonnes
+   « Notes » et « Contact » sont en hauteur variable, la ligne est donc plus haute
+   que sa première cellule — un filet posé sur la cellule s'arrêtait au milieu.
+   (La ligne est déjà en `position: relative` — c'est le moteur qui le pose.) */
+.tabulator .tabulator-row.needs-followup::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--warn);
+  pointer-events: none;
+  z-index: 3;
+}
+.tabulator .tabulator-cell {
+  min-height: 48px;
+  padding: 10px 14px;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.tabulator .tabulator-cell.tabulator-editing { padding: 5px 8px; }
+.tabulator .tabulator-cell .cell-value { min-width: 0; }
+.tabulator .tabulator-footer {
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  color: var(--muted);
+}
+.tabulator .tabulator-footer .tabulator-page,
+.tabulator .tabulator-footer .tabulator-page-size {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--card);
+  border-radius: var(--radius-xs);
+}
+.tabulator .tabulator-footer .tabulator-page.active { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
+.tabulator .tabulator-placeholder { color: var(--faint); }
+.tabulator .tabulator-responsive-collapse { border-top: 1px solid var(--border); background: var(--card-soft); }
+.tabulator .tabulator-responsive-collapse td { border-bottom-color: var(--border); color: var(--text); }
+.tabulator .tabulator-responsive-collapse td:first-child { color: var(--muted); }
+
+/* ==========================================================================
+   Adaptations aux petits écrans
+   ========================================================================== */
+
+@media (max-width: 880px) {
+  .app-bar { padding: 10px 16px; }
+  main { padding: 16px 16px 52px; gap: 14px; }
+
+  .brand-sub { display: none; }
+
+  /* Le plateau passe à deux colonnes : un widget large occupe la rangée entière,
+     un indicateur partage la sienne avec un voisin. */
+  .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .bento-item.size-2,
+  .bento-item.size-3,
+  .bento-item.size-6 { grid-column: span 2; }
+
+  /* La note reste confortable à lire dans la vue « cartes » */
+  .notes-text { display: block; -webkit-line-clamp: none; }
+
+  .table-wrap { overflow-x: visible; }
+  table, thead, tbody, tr, td { display: block; }
+  thead { display: none; }
+
+  tbody { padding: 6px 10px 12px; }
+  tbody tr {
+    margin-top: 10px;
+    padding: 4px 0 8px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-sm);
+  }
+  tbody tr:first-child { margin-top: 4px; }
+  tbody tr:hover { background: var(--card); }
+  tbody td {
+    display: grid;
+    grid-template-columns: 116px 1fr;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 14px;
+    border: 0;
+    white-space: normal;
+  }
+  tbody td::before {
+    content: attr(data-label);
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--faint);
+  }
+  tbody td.cell-notes, tbody td.cell-contact { max-width: none; }
+  tbody td .cell-value { grid-column: 2; }
+
+  /* Vue « cartes » : les cellules ne sont plus des cellules de tableau, l'espacement
+     passe donc par `gap` et non par des marges. */
+  tbody td.row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    margin-top: 4px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  tbody td.row-actions .icon-btn + .icon-btn { margin-left: 0; }
+  tbody td.row-actions::before { content: none; }
+
+  tbody tr.needs-followup td { background: transparent; }
+  tbody tr.needs-followup { background: var(--warn-bg); }
+  tbody tr.needs-followup td.row-actions { border-top-color: var(--warn); }
+
+  .grid { grid-template-columns: 1fr; gap: 0; }
+  .modal-actions { flex-wrap: wrap; }
+  .toasts { left: 16px; right: 16px; max-width: none; }
+}
+
+@media (max-width: 560px) {
+  .app-bar { padding: 8px 12px; min-height: 0; gap: 10px; }
+  .app-actions { gap: 6px; }
+  /* Barre compacte : les libellés disparaissent, les icônes restent.
+     Ciblé sur la barre d'application pour que les libellés des boutons
+     d'action (état vide, modales) restent lisibles. */
+  .app-bar .btn-label { display: none; }
+  .app-bar kbd { display: none; }
+  .app-bar .btn { padding: 8px 11px; }
+  .brand h1 { font-size: 0.98rem; }
+  .brand-mark { width: 34px; height: 34px; }
+  /* Une seule colonne : un widget large se range comme un indicateur. Le
+     sélecteur passe par `.bento` pour l'emporter sur les classes `size-*`. */
+  .bento { grid-template-columns: 1fr; gap: 12px; }
+  .bento .bento-item { grid-column: 1 / -1; }
+  /* La barre de taux descend sous la ligne de source */
+  #insights-delay { white-space: normal; text-align: right; }
+  .source-row { grid-template-columns: 1fr auto; gap: 6px 10px; }
+  .source-bar { grid-column: 1 / -1; }
+  .source-rate { text-align: left; }
+
+  .stat { padding: 13px 13px 12px; }
+  .stat .stat-num { font-size: 1.42rem; }
+  .table-head { padding: 13px 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+/* ==========================================================================
+   Impression
+   ========================================================================== */
+
+@media print {
+  .app-bar, .toolbar, .row-actions, .toasts, .skeleton, .alert-bar, .bento-bar { display: none !important; }
+  body { background: #fff; }
+  main { padding: 0; }
+  .card { border: 0; box-shadow: none; }
+  tbody tr:hover { background: none; }
+}
