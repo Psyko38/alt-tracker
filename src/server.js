@@ -260,6 +260,22 @@ function createApp(customDbPath) {
     }
   });
 
+  app.get('/api/pdf/settings', (_req, res) => {
+    try {
+      res.json(store.getPdfSettings());
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/pdf/settings', (req, res) => {
+    try {
+      res.json(store.savePdfSettings(req.body || {}));
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/import', (req, res) => {
     try {
       const imported = store.importApplications(req.body || {});

@@ -241,9 +241,13 @@
       <section class="m3-view-section" id="view-list">
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
           <p style="font-size: 13.5px; color: var(--md-sys-color-on-surface-variant);">
-            Exportez à tout moment votre liste d’envois filtrée au format PDF officiel (paysage A4).
+            Exportez votre liste d’envois filtrée au format PDF officiel (Paysage A4 avec Page de Garde personnalisable).
           </p>
           <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" onclick="openPdfCoverStudio()">
+              <span class="material-symbols-rounded" style="font-size: 17px;">auto_stories</span>
+              <span>Page de garde PDF</span>
+            </button>
             <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="openPdfListPreview()">
               <span class="material-symbols-rounded" style="font-size: 17px;">visibility</span>
               <span>Aperçu PDF de la liste</span>
@@ -277,9 +281,13 @@
       <!-- ==================== VIEW 4: FOLLOW-UPS & INTERVIEWS ==================== -->
       <section class="m3-view-section" id="view-followups">
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 14px;">
+          <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" onclick="openPdfCoverStudio()">
+            <span class="material-symbols-rounded" style="font-size: 17px;">auto_stories</span>
+            <span>Configurer la Page de Garde PDF</span>
+          </button>
           <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="openPdfListPreview()">
             <span class="material-symbols-rounded" style="font-size: 17px;">picture_as_pdf</span>
-            <span>Exporter le rapport d’envois & relances (PDF)</span>
+            <span>Aperçu & Export PDF des envois</span>
           </button>
         </div>
         <div class="m3-dashboard-grid">
@@ -340,7 +348,7 @@
                     </button>
                   </div>
                   <p class="m3-ai-studio-sub">
-                    Agent connecté en temps réel à votre base SQLite, vos relances et au protocole MCP
+                    Agent connecté à 100% de l’application via les 22 outils du protocole MCP
                   </p>
                 </div>
               </div>
@@ -351,7 +359,7 @@
                 </select>
                 <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-mcp-hub" title="Connecteurs Model Context Protocol (MCP)">
                   <span class="material-symbols-rounded" style="font-size: 17px;">hub</span>
-                  <span id="mcp-hub-btn-label">MCP (7 Tools)</span>
+                  <span id="mcp-hub-btn-label">MCP (22 Tools)</span>
                 </button>
                 <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" id="btn-open-ai-settings-secondary" title="Paramètres OpenAI & Profil">
                   <span class="material-symbols-rounded" style="font-size: 17px;">settings</span>
@@ -825,50 +833,128 @@
     </div>
   </div>
 
-  <!-- ==================== M3 Dialog: Import / Export ==================== -->
+  <!-- ==================== M3 Dialog: PDF Cover Page Studio & Import / Export ==================== -->
   <div class="m3-dialog-backdrop" id="import-export-backdrop">
-    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(580px, 100%);">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(740px, 100%);">
       <div class="m3-dialog-header">
-        <h2 class="m3-dialog-title">Importer & Exporter vos données</h2>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="m3-ai-orb" style="width: 40px; height: 40px;">
+            <span class="material-symbols-rounded filled" style="font-size: 20px;">auto_stories</span>
+          </div>
+          <div>
+            <h2 class="m3-dialog-title">Studio d’Export PDF (Page de Garde) & Import / Export</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);">
+              Personnalisez la page de garde officielle de votre dossier de suivi PDF (Paysage A4) ou exportez en CSV/JSON
+            </p>
+          </div>
+        </div>
         <button class="m3-icon-btn" id="btn-close-import-export">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
       <div class="m3-dialog-body">
-        <div class="m3-form-section-title">Exporter la liste des envois & candidatures</div>
-        <p style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
-          Générez un rapport officiel en <strong>PDF (Paysage A4)</strong>, un tableau Excel/Sheets (CSV) ou une sauvegarde complète (JSON).
-        </p>
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-          <a href="/api/export/pdf" class="m3-btn m3-btn-filled" download="alt-tracker-liste-envois.pdf">
-            <span class="material-symbols-rounded">picture_as_pdf</span>
-            <span>Exporter la liste en PDF</span>
-          </a>
-          <button type="button" class="m3-btn m3-btn-tonal" id="btn-export-pdf-preview">
-            <span class="material-symbols-rounded">visibility</span>
-            <span>Aperçu PDF dans la page</span>
+        <form id="pdf-cover-form" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+            <div class="m3-form-section-title" style="margin: 0; border: none; padding: 0;">
+              1. Système de Page de Garde Officielle (Rapport PDF Paysage A4)
+            </div>
+            <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 700; cursor: pointer;">
+                <input type="checkbox" id="pdf-cover-enabled" checked style="accent-color: var(--md-sys-color-primary); width: 16px; height: 16px;" />
+                <span>Inclure la Page de Garde</span>
+              </label>
+              <label style="display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer;">
+                <input type="checkbox" id="pdf-cover-kpis" checked style="accent-color: var(--md-sys-color-primary); width: 16px; height: 16px;" />
+                <span>Afficher les 4 cartes KPI</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="m3-form-grid">
+            <div class="m3-field">
+              <label for="pdf-cover-title">Titre principal de la page de garde</label>
+              <input type="text" id="pdf-cover-title" class="m3-input" placeholder="DOSSIER DE SUIVI DES CANDIDATURES" />
+            </div>
+            <div class="m3-field">
+              <label for="pdf-cover-theme">Thème couleur du PDF (Material 3)</label>
+              <select id="pdf-cover-theme" class="m3-input">
+                <option value="iris">Iris profond (Défaut M3)</option>
+                <option value="emerald">Émeraude (Tech & Data)</option>
+                <option value="ocean">Océan (Corporate & Cloud)</option>
+                <option value="terracotta">Terracotta (Créatif)</option>
+                <option value="cherry">Cerise (Dynamique)</option>
+              </select>
+            </div>
+            <div class="m3-field full-width">
+              <label for="pdf-cover-subtitle">Sous-titre du rapport</label>
+              <input type="text" id="pdf-cover-subtitle" class="m3-input" placeholder="Journal officiel des envois, relances et entretiens — Alternance & Emploi" />
+            </div>
+            <div class="m3-field">
+              <label for="pdf-cover-candidate">Candidat (Prénom & Nom)</label>
+              <input type="text" id="pdf-cover-candidate" class="m3-input" placeholder="Matteo" />
+            </div>
+            <div class="m3-field">
+              <label for="pdf-cover-school">École / Formation / CFA</label>
+              <input type="text" id="pdf-cover-school" class="m3-input" placeholder="Ex: École d’Ingénieur / Master Informatique" />
+            </div>
+            <div class="m3-field">
+              <label for="pdf-cover-year">Période / Année scolaire</label>
+              <input type="text" id="pdf-cover-year" class="m3-input" placeholder="2026 - 2027" />
+            </div>
+            <div class="m3-field">
+              <label for="pdf-cover-contract">Contrat & Objectif recherché</label>
+              <input type="text" id="pdf-cover-contract" class="m3-input" placeholder="Alternance / Contrat d’apprentissage & CDI" />
+            </div>
+            <div class="m3-field full-width">
+              <label for="pdf-cover-note">Note de synthèse & présentation (bas de page de garde)</label>
+              <textarea id="pdf-cover-note" class="m3-textarea" style="min-height: 62px;" placeholder="Ce dossier récapitule l’ensemble des démarches de recherche d’entreprise et le suivi des relances..."></textarea>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; justify-content: space-between; padding-top: 4px;">
+            <button type="submit" class="m3-btn m3-btn-outlined m3-btn-sm">
+              <span class="material-symbols-rounded" style="font-size: 17px;">save</span>
+              <span>Enregistrer la page de garde</span>
+            </button>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="m3-btn m3-btn-tonal" id="btn-export-pdf-preview">
+                <span class="material-symbols-rounded">visibility</span>
+                <span>Aperçu PDF (Page de garde + Liste)</span>
+              </button>
+              <button type="button" class="m3-btn m3-btn-filled" id="btn-export-pdf-download">
+                <span class="material-symbols-rounded">picture_as_pdf</span>
+                <span>Télécharger le PDF</span>
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <hr style="border: none; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 6px 0;" />
+
+        <div class="m3-form-section-title">2. Export Tableur (CSV / JSON) & Importation de Masse</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="/api/export/csv" class="m3-btn m3-btn-tonal m3-btn-sm" download>
+              <span class="material-symbols-rounded" style="font-size: 17px;">table_view</span>
+              <span>Exporter CSV (Excel / Sheets)</span>
+            </a>
+            <a href="/api/export/json" class="m3-btn m3-btn-outlined m3-btn-sm" download>
+              <span class="material-symbols-rounded" style="font-size: 17px;">data_object</span>
+              <span>Sauvegarde JSON complète</span>
+            </a>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; margin-top: 4px;">
+          <div class="m3-field">
+            <label for="import-file-input">Importer un fichier .csv ou .json</label>
+            <input type="file" id="import-file-input" class="m3-input" accept=".csv,.json" />
+          </div>
+          <button class="m3-btn m3-btn-outlined" id="btn-run-import" style="height: 42px;">
+            <span class="material-symbols-rounded">upload</span>
+            <span>Importer</span>
           </button>
-          <a href="/api/export/csv" class="m3-btn m3-btn-tonal" download>
-            <span class="material-symbols-rounded">table_view</span>
-            <span>CSV</span>
-          </a>
-          <a href="/api/export/json" class="m3-btn m3-btn-outlined" download>
-            <span class="material-symbols-rounded">data_object</span>
-            <span>JSON</span>
-          </a>
         </div>
-
-        <hr style="border: none; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 8px 0;" />
-
-        <div class="m3-form-section-title">Importer un fichier (CSV ou JSON)</div>
-        <div class="m3-field">
-          <label for="import-file-input">Sélectionnez un fichier .csv ou .json</label>
-          <input type="file" id="import-file-input" class="m3-input" accept=".csv,.json" />
-        </div>
-        <button class="m3-btn m3-btn-outlined" id="btn-run-import" style="align-self: flex-start;">
-          <span class="material-symbols-rounded">upload</span>
-          <span>Lancer l’importation</span>
-        </button>
       </div>
     </div>
   </div>

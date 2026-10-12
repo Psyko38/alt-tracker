@@ -2005,8 +2005,65 @@ async function handleExtractJobOffer(autoCreate = false) {
 }
 
 /* ==========================================================================
-   PDF List Export & In-Page PDF Preview + Model Context Protocol (MCP) Hub
+   PDF Cover Page Studio, PDF List Export/Preview & Model Context Protocol (MCP) Hub
    ========================================================================== */
+async function loadPdfSettings() {
+  try {
+    const s = await apiFetch('/api/pdf/settings');
+    state.pdfSettings = s;
+    const enabledEl = document.getElementById('pdf-cover-enabled');
+    const kpisEl = document.getElementById('pdf-cover-kpis');
+    const titleEl = document.getElementById('pdf-cover-title');
+    const subEl = document.getElementById('pdf-cover-subtitle');
+    const candEl = document.getElementById('pdf-cover-candidate');
+    const schoolEl = document.getElementById('pdf-cover-school');
+    const yearEl = document.getElementById('pdf-cover-year');
+    const contractEl = document.getElementById('pdf-cover-contract');
+    const themeEl = document.getElementById('pdf-cover-theme');
+    const noteEl = document.getElementById('pdf-cover-note');
+
+    if (enabledEl) enabledEl.checked = Boolean(s.include_cover_page);
+    if (kpisEl) kpisEl.checked = Boolean(s.show_kpi_boxes);
+    if (titleEl) titleEl.value = s.report_title || '';
+    if (subEl) subEl.value = s.report_subtitle || '';
+    if (candEl) candEl.value = s.candidate_name || '';
+    if (schoolEl) schoolEl.value = s.school_or_program || '';
+    if (yearEl) yearEl.value = s.academic_year || '';
+    if (contractEl) contractEl.value = s.target_contract || '';
+    if (themeEl) themeEl.value = s.accent_theme || 'iris';
+    if (noteEl) noteEl.value = s.cover_note || '';
+    syncAllM3Selects();
+  } catch (err) {
+    console.warn('Impossible de charger les paramètres de page de garde PDF :', err.message);
+  }
+}
+
+function collectPdfCoverFormPayload() {
+  const titleEl = document.getElementById('pdf-cover-title');
+  if (!titleEl) return null;
+  return {
+    include_cover_page: document.getElementById('pdf-cover-enabled')?.checked ?? true,
+    show_kpi_boxes: document.getElementById('pdf-cover-kpis')?.checked ?? true,
+    report_title: titleEl.value.trim(),
+    report_subtitle: document.getElementById('pdf-cover-subtitle')?.value.trim() || '',
+    candidate_name: document.getElementById('pdf-cover-candidate')?.value.trim() || '',
+    school_or_program: document.getElementById('pdf-cover-school')?.value.trim() || '',
+    academic_year: document.getElementById('pdf-cover-year')?.value.trim() || '',
+    target_contract: document.getElementById('pdf-cover-contract')?.value.trim() || '',
+    accent_theme: document.getElementById('pdf-cover-theme')?.value || 'iris',
+    cover_note: document.getElementById('pdf-cover-note')?.value.trim() || ''
+  };
+}
+
+function openPdfCoverStudio() {
+  loadPdfSettings();
+  const ieBackdrop = document.getElementById('import-export-backdrop');
+  const fileInp = document.getElementById('import-file-input');
+  if (fileInp) fileInp.value = '';
+  syncAllM3FileInputs();
+  if (ieBackdrop) ieBackdrop.classList.add('open');
+}
+
 function buildFilterQueryParams(extra = {}) {
   const params = new URLSearchParams();
   if (state.filters.type && state.filters.type !== 'all') params.set('type', state.filters.type);
@@ -2015,6 +2072,21 @@ function buildFilterQueryParams(extra = {}) {
   if (state.filters.due_followup) params.set('due_followup', 'true');
   if (state.filters.favorite) params.set('favorite', 'true');
   if (state.filters.sort) params.set('sort', state.filters.sort);
+
+  const formPayload = collectPdfCoverFormPayload();
+  if (formPayload) {
+    params.set('cover', formPayload.include_cover_page ? '1' : '0');
+    params.set('show_kpi_boxes', formPayload.show_kpi_boxes ? '1' : '0');
+    if (formPayload.accent_theme) params.set('accent_theme', formPayload.accent_theme);
+    if (formPayload.report_title) params.set('report_title', formPayload.report_title);
+    if (formPayload.report_subtitle) params.set('report_subtitle', formPayload.report_subtitle);
+    if (formPayload.candidate_name) params.set('candidate_name', formPayload.candidate_name);
+    if (formPayload.school_or_program) params.set('school_or_program', formPayload.school_or_program);
+    if (formPayload.academic_year) params.set('academic_year', formPayload.academic_year);
+    if (formPayload.target_contract) params.set('target_contract', formPayload.target_contract);
+    if (formPayload.cover_note) params.set('cover_note', formPayload.cover_note);
+  }
+
   Object.entries(extra).forEach(([k, v]) => {
     if (v !== undefined && v !== null) params.set(k, String(v));
   });
@@ -2022,11 +2094,23 @@ function buildFilterQueryParams(extra = {}) {
   return qs ? `?${qs}` : '';
 }
 
-function openPdfListPreview() {
+async function openPdfListPreview() {
+  const formPayload = collectPdfCoverFormPayload();
+  if (formPayload) {
+    try {
+      state.pdfSettings = await apiFetch('/api/pdf/settings', {
+        method: 'PUT',
+        body: JSON.stringify(formPayload)
+      });
+    } catch (_e) {
+      // Proceed with query params
+    }
+  }
+
   const ieBackdrop = document.getElementById('import-export-backdrop');
   if (ieBackdrop) ieBackdrop.classList.remove('open');
 
-  const inlineUrl = `/api/export/pdf${buildFilterQueryParams({ inline: '1' })}`;
+  const inlineUrl = `/api/export/pdf${buildFilterQueryParams({ inline: '1', _t: Date.now() })}`;
   const downloadUrl = `/api/export/pdf${buildFilterQueryParams()}`;
 
   const backdrop = document.getElementById('doc-preview-backdrop');
@@ -2037,34 +2121,51 @@ function openPdfListPreview() {
   const dlBtn = document.getElementById('doc-preview-download');
 
   const count = state.applications.length;
-  titleEl.textContent = 'Liste des Envois & Suivi des Candidatures (PDF)';
-  subEl.textContent = `Rapport officiel Paysage A4 · ${count} candidature(s) selon vos filtres actifs`;
+  const hasCover = formPayload ? formPayload.include_cover_page : true;
+  titleEl.textContent = 'Dossier Officiel des Candidatures & Liste des Envois (PDF)';
+  subEl.textContent = `Format Paysage A4 · ${hasCover ? 'Avec Page de Garde officielle + ' : ''}${count} candidature(s)`;
 
   newTabBtn.href = inlineUrl;
   newTabBtn.style.display = 'inline-flex';
   dlBtn.href = downloadUrl;
-  dlBtn.setAttribute('download', `alt-tracker-liste-envois-${todayIsoDate()}.pdf`);
+  dlBtn.setAttribute('download', `alt-tracker-dossier-candidatures-${todayIsoDate()}.pdf`);
   dlBtn.style.display = 'inline-flex';
 
-  bodyEl.innerHTML = `<iframe src="${inlineUrl}" class="m3-doc-preview-frame" title="Aperçu PDF de la liste des envois"></iframe>`;
+  bodyEl.innerHTML = `<iframe src="${inlineUrl}" class="m3-doc-preview-frame" title="Aperçu PDF du dossier de candidatures"></iframe>`;
   backdrop.classList.add('open');
 }
 
-function downloadPdfList() {
+async function downloadPdfList() {
+  const formPayload = collectPdfCoverFormPayload();
+  if (formPayload) {
+    try {
+      state.pdfSettings = await apiFetch('/api/pdf/settings', {
+        method: 'PUT',
+        body: JSON.stringify(formPayload)
+      });
+    } catch (_e) {
+      // Ignore
+    }
+  }
   const downloadUrl = `/api/export/pdf${buildFilterQueryParams()}`;
   const link = document.createElement('a');
   link.href = downloadUrl;
-  link.download = `alt-tracker-liste-envois-${todayIsoDate()}.pdf`;
+  link.download = `alt-tracker-dossier-candidatures-${todayIsoDate()}.pdf`;
   document.body.appendChild(link);
   link.click();
   link.remove();
-  showSnackbar('Export PDF de la liste des envois généré !');
+  showSnackbar('Dossier PDF (avec Page de Garde & Liste des envois) téléchargé !');
 }
 
 async function loadMcpHub() {
   try {
     const info = await apiFetch('/api/mcp/info');
     state.mcpInfo = info;
+
+    const btnLabel = document.getElementById('mcp-hub-btn-label');
+    if (btnLabel && Array.isArray(info.tools)) {
+      btnLabel.textContent = `MCP (${info.tools.length} Tools)`;
+    }
 
     const endpointEl = document.getElementById('mcp-http-endpoint-code');
     if (endpointEl && info.httpEndpoint) {
@@ -2082,11 +2183,14 @@ async function loadMcpHub() {
       toolsGrid.innerHTML = info.tools.map((t) => `
         <div class="m3-detail-box" style="justify-content: space-between; gap: 6px;">
           <div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <span class="material-symbols-rounded" style="font-size:15px; color:var(--md-sys-color-primary);">terminal</span>
-              <code style="font-size:12px; font-weight:700; color:var(--md-sys-color-on-surface);">${escapeHtml(t.name)}</code>
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap;">
+              <span style="display:inline-flex; align-items:center; gap:5px;">
+                <span class="material-symbols-rounded" style="font-size:15px; color:var(--md-sys-color-primary);">terminal</span>
+                <code style="font-size:11.5px; font-weight:700; color:var(--md-sys-color-on-surface);">${escapeHtml(t.name)}</code>
+              </span>
+              ${t.category ? `<span style="font-size:10px; font-weight:700; padding:2px 6px; border-radius:999px; background:var(--md-sys-color-secondary-container); color:var(--md-sys-color-on-secondary-container);">${escapeHtml(t.category)}</span>` : ''}
             </div>
-            <p style="font-size:11.5px; color:var(--md-sys-color-on-surface-variant); margin-top:4px; line-height:1.4;">
+            <p style="font-size:11.2px; color:var(--md-sys-color-on-surface-variant); margin-top:4px; line-height:1.38;">
               ${escapeHtml(t.description)}
             </p>
           </div>
@@ -2108,7 +2212,7 @@ async function loadMcpHub() {
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span class="m3-action-item-title">${escapeHtml(c.name)}</span>
                   <span class="m3-badge" style="background:var(--md-sys-color-secondary-container); color:${statusColor};">
-                    ● ${isOnline ? `Connecté (${c.tools_count || 7} tools)` : escapeHtml(c.last_status || 'Inconnu')}
+                    ● ${isOnline ? `Connecté (${c.tools_count || 22} tools)` : escapeHtml(c.last_status || 'Inconnu')}
                   </span>
                 </div>
                 <span class="m3-action-item-sub">
@@ -2196,6 +2300,7 @@ document.addEventListener('DOMContentLoaded', () => {
   enhanceM3FileInputs();
   refreshAllData();
   loadAiSettings();
+  loadPdfSettings();
   loadMcpHub();
   renderAiMessages();
 
@@ -2430,21 +2535,38 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Import / Export Modal + PDF Preview button
+  // PDF Cover Page Studio + Import / Export Modal
   const ieBackdrop = document.getElementById('import-export-backdrop');
-  const openImportExport = () => {
-    const fileInp = document.getElementById('import-file-input');
-    if (fileInp) fileInp.value = '';
-    syncAllM3FileInputs();
-    ieBackdrop.classList.add('open');
-  };
-  document.getElementById('btn-open-import-export').addEventListener('click', openImportExport);
-  document.getElementById('btn-top-import-export').addEventListener('click', openImportExport);
+  document.getElementById('btn-open-import-export').addEventListener('click', openPdfCoverStudio);
+  document.getElementById('btn-top-import-export').addEventListener('click', openPdfCoverStudio);
   document.getElementById('btn-close-import-export').addEventListener('click', () => ieBackdrop.classList.remove('open'));
+
+  const pdfCoverForm = document.getElementById('pdf-cover-form');
+  if (pdfCoverForm) {
+    pdfCoverForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = collectPdfCoverFormPayload();
+      if (!payload) return;
+      try {
+        state.pdfSettings = await apiFetch('/api/pdf/settings', {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        showSnackbar('Page de garde PDF enregistrée avec succès !');
+      } catch (err) {
+        showSnackbar(`Erreur : ${err.message}`);
+      }
+    });
+  }
 
   const btnExportPdfPreview = document.getElementById('btn-export-pdf-preview');
   if (btnExportPdfPreview) {
     btnExportPdfPreview.addEventListener('click', openPdfListPreview);
+  }
+
+  const btnExportPdfDownload = document.getElementById('btn-export-pdf-download');
+  if (btnExportPdfDownload) {
+    btnExportPdfDownload.addEventListener('click', downloadPdfList);
   }
 
   document.getElementById('btn-run-import').addEventListener('click', async () => {
@@ -2517,7 +2639,7 @@ document.addEventListener('DOMContentLoaded', () => {
           })
         });
         const count = rpcRes && rpcRes.result && Array.isArray(rpcRes.result.tools) ? rpcRes.result.tools.length : 0;
-        showSnackbar(`⚡ Serveur MCP Alt-Tracker opérationnel (${count} tools JSON-RPC 2.0 prêts) !`);
+        showSnackbar(`⚡ Serveur MCP Alt-Tracker opérationnel (${count} tools JSON-RPC 2.0 couvrant 100% de l'app) !`);
       } catch (err) {
         showSnackbar(`Erreur MCP : ${err.message}`);
       }
@@ -2727,6 +2849,7 @@ window.openEditDocumentDialog = openEditDocumentDialog;
 window.switchView = switchView;
 window.launchAiForApp = launchAiForApp;
 window.copyAiResponse = copyAiResponse;
+window.openPdfCoverStudio = openPdfCoverStudio;
 window.openPdfListPreview = openPdfListPreview;
 window.downloadPdfList = downloadPdfList;
 window.openMcpDialog = openMcpDialog;
@@ -2734,3 +2857,4 @@ window.closeMcpDialog = closeMcpDialog;
 window.testMcpConnector = testMcpConnector;
 window.toggleMcpConnectorItem = toggleMcpConnectorItem;
 window.deleteMcpConnectorItem = deleteMcpConnectorItem;
+

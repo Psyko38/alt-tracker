@@ -267,26 +267,54 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     assert.equal(extractRes.body.created.company, 'Doctolib');
   });
 
-  test('GET /api/export/pdf generates a valid multi-page Landscape A4 PDF report of applications', async () => {
+  test('GET & PUT /api/pdf/settings configures Cover Page and GET /api/export/pdf renders Cover Page', async () => {
+    const getSettings = await request('/api/pdf/settings');
+    assert.equal(getSettings.status, 200);
+    assert.equal(getSettings.body.include_cover_page, true);
+
+    const putSettings = await request('/api/pdf/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        include_cover_page: true,
+        report_title: 'DOSSIER OFFICIEL ALTERNANCE 2026',
+        report_subtitle: 'Rapport Exécutif Ingénieur Logiciel',
+        candidate_name: 'Matteo Dev',
+        school_or_program: 'Master Ingénierie Logicielle',
+        academic_year: '2026 - 2027',
+        target_contract: 'Alternance',
+        accent_theme: 'emerald',
+        show_kpi_boxes: true,
+        cover_note: 'Synthèse certifiée des démarches entreprise.'
+      })
+    });
+    assert.equal(putSettings.status, 200);
+    assert.equal(putSettings.body.report_title, 'DOSSIER OFFICIEL ALTERNANCE 2026');
+    assert.equal(putSettings.body.accent_theme, 'emerald');
+
     const pdfRes = await request('/api/export/pdf');
     assert.equal(pdfRes.status, 200);
     assert.equal((pdfRes.headers.get('content-type') || '').includes('application/pdf'), true);
     assert.equal((pdfRes.headers.get('content-disposition') || '').includes('attachment'), true);
     assert.equal(pdfRes.body.startsWith('%PDF-1.4'), true);
+    assert.equal(pdfRes.body.includes('PAGE DE GARDE OFFICIELLE'), true);
+    assert.equal(pdfRes.body.includes('DOSSIER OFFICIEL ALTERNANCE 2026'), true);
     assert.equal(pdfRes.body.includes('Airbus'), true);
 
-    const inlineRes = await request('/api/export/pdf?inline=1&type=alternance');
-    assert.equal(inlineRes.status, 200);
-    assert.equal((inlineRes.headers.get('content-disposition') || '').includes('inline'), true);
-    assert.equal(inlineRes.body.startsWith('%PDF-1.4'), true);
+    const noCoverRes = await request('/api/export/pdf?inline=1&type=alternance&cover=0');
+    assert.equal(noCoverRes.status, 200);
+    assert.equal((noCoverRes.headers.get('content-disposition') || '').includes('inline'), true);
+    assert.equal(noCoverRes.body.startsWith('%PDF-1.4'), true);
+    assert.equal(noCoverRes.body.includes('PAGE DE GARDE OFFICIELLE'), false);
   });
 
-  test('GET /api/mcp/info and POST /api/mcp implement Model Context Protocol JSON-RPC 2.0', async () => {
+  test('GET /api/mcp/info and POST /api/mcp implement Full-App 22-Tool Model Context Protocol JSON-RPC 2.0', async () => {
     const infoRes = await request('/api/mcp/info');
     assert.equal(infoRes.status, 200);
     assert.equal(infoRes.body.serverInfo.name, 'alt-tracker-mcp-server');
     assert.equal(Array.isArray(infoRes.body.tools), true);
-    assert.equal(infoRes.body.tools.length >= 7, true);
+    assert.equal(infoRes.body.tools.length, 22);
+    assert.equal(Array.isArray(infoRes.body.resources), true);
+    assert.equal(infoRes.body.resources.length, 5);
 
     const initRpc = await request('/api/mcp', {
       method: 'POST',
@@ -311,7 +339,7 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
       })
     });
     assert.equal(listToolsRpc.status, 200);
-    assert.equal(Array.isArray(listToolsRpc.body.result.tools), true);
+    assert.equal(listToolsRpc.body.result.tools.length, 22);
 
     const callToolRpc = await request('/api/mcp', {
       method: 'POST',
@@ -330,6 +358,58 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     const parsedContent = JSON.parse(callToolRpc.body.result.content[0].text);
     assert.equal(parsedContent.count >= 1, true);
 
+    // Call MCP tool to update PDF Cover Page settings and archive a PDF report into Documents
+    const mcpExportPdfRpc = await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 4,
+        method: 'tools/call',
+        params: {
+          name: 'export_applications_pdf_report',
+          arguments: {
+            include_cover_page: true,
+            report_title: 'RAPPORT MCP FULL APP',
+            accent_theme: 'ocean',
+            save_to_library: true
+          }
+        }
+      })
+    });
+    assert.equal(mcpExportPdfRpc.status, 200);
+    const exportResult = JSON.parse(mcpExportPdfRpc.body.result.content[0].text);
+    assert.equal(exportResult.bytes > 500, true);
+    assert.equal(Boolean(exportResult.document && exportResult.document.id), true);
+
+    // Verify via MCP list_documents and delete_document
+    const mcpListDocs = await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 5,
+        method: 'tools/call',
+        params: {
+          name: 'list_documents',
+          arguments: {}
+        }
+      })
+    });
+    const docsPayload = JSON.parse(mcpListDocs.body.result.content[0].text);
+    assert.equal(docsPayload.count >= 1, true);
+
+    await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 6,
+        method: 'tools/call',
+        params: {
+          name: 'delete_document',
+          arguments: { id: exportResult.document.id }
+        }
+      })
+    });
+
     // Connect and test a loopback MCP connector pointing to our running test server
     const createConn = await request('/api/mcp/connectors', {
       method: 'POST',
@@ -341,7 +421,7 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     });
     assert.equal(createConn.status, 201);
     assert.equal(createConn.body.last_status, 'connected');
-    assert.equal(createConn.body.tools_count >= 7, true);
+    assert.equal(createConn.body.tools_count, 22);
 
     const delConn = await request(`/api/mcp/connectors/${createConn.body.id}`, {
       method: 'DELETE'

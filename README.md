@@ -33,15 +33,20 @@ Application web locale complète en **Node.js (Express 5 + SQLite natif `node:sq
    - **Function Calling connecté à SQLite** : l’IA consulte vos stats, crée/modifie des candidatures, valide des relances et **génère automatiquement des lettres de motivation en PDF** directement dans votre bibliothèque.
    - **Smart Job Parser IA** : collez le texte brut d’une annonce (LinkedIn, Welcome to the Jungle, Indeed) pour pré-remplir le formulaire ou créer la candidature en 1 clic.
 
-### 📄 Rapports & Import / Export Multi-formats
-- **Export PDF Officiel (Paysage A4)** : rapport multi-pages vectoriel généré nativement sans dépendance externe (bannière Material 3 Deep Iris, résumé KPI, tableau zébré paginé).
+### 📄 Rapports PDF avec Page de Garde & Import / Export Multi-formats
+- **Système de Page de Garde PDF (Paysage A4)** :
+  - **Studio d’Export PDF dédié** permettant de personnaliser le **Titre du dossier**, le **Sous-titre**, le **Candidat**, l’**École / Formation**, l’**Année académique**, le **Contrat visé**, une **Note de synthèse exécutive** et l’affichage des **4 cartes KPI**.
+  - **5 Thèmes de couleur PDF Material 3** (*Iris*, *Émeraude*, *Océan*, *Terracotta*, *Cerise*) appliqués à la Page de Garde officielle et aux en-têtes du tableau paginé.
+  - **Aperçu PDF en direct** dans la visionneuse intégrée (`?inline=1`) avec possibilité d’activer/désactiver la page de garde à la volée (`?cover=1` / `?cover=0`).
 - **Import / Export CSV & JSON** : sauvegarde complète ou ouverture directe dans Excel / Google Sheets / Notion.
 
 ---
 
-## 🔌 Connecteur Model Context Protocol (MCP `2024-11-05`)
+## 🔌 Connecteur Model Context Protocol Full-App (MCP `2024-11-05` — 22 Outils)
 
-Alt-Tracker intègre un **serveur MCP natif** supportant à la fois le transport **`stdio`** (pour **Claude Desktop**, **Cursor**, **Antigravity**, etc.) et **`HTTP JSON-RPC 2.0`** (`/api/mcp`), ainsi qu’un **Hub MCP** dans l’interface pour gérer des serveurs MCP externes.
+Alt-Tracker intègre un **moteur MCP unifié qui couvre 100 % de l’application** :
+- **Agents IA Externes** (**Claude Desktop**, **Cursor**, **Antigravity**, etc.) via **`stdio`** ou **`HTTP JSON-RPC 2.0`** (`/api/mcp`).
+- **Agent IA Interne (Copilote IA Studio)** : partage exactement le même registre de **22 outils MCP** (`src/mcp-server.js`), garantissant que toute action faisable dans l’interface est pilotable par un agent interne ou externe.
 
 ### Configuration `stdio` (Claude Desktop / Cursor / Antigravity)
 
@@ -64,23 +69,41 @@ Ajoutez la configuration suivante dans votre fichier `claude_desktop_config.json
 - **URL** : `POST http://localhost:3000/api/mcp`
 - **Métadonnées & Découverte** : `GET http://localhost:3000/api/mcp/info`
 
-### Outils (`Tools`), Ressources (`Resources`) & `Prompts` MCP exposés
+### Les 22 Outils (`Tools`), 5 `Resources` & 4 `Prompts` MCP exposés
 
-| Type MCP | Nom | Description |
+| Catégorie | Nom MCP | Description |
 |---|---|---|
-| **Tool** | `list_applications` | Liste et filtre les candidatures (`type`, `status`, `search`, `due_followup`, `favorite`) |
-| **Tool** | `get_application` | Récupère les détails complets et la timeline d’une candidature par ID |
-| **Tool** | `create_application` | Crée une nouvelle candidature dans SQLite avec événement initial |
-| **Tool** | `update_application_status` | Met à jour le statut d’une candidature et journalise le changement |
-| **Tool** | `mark_follow_up_done` | Enregistre une relance effectuée et décale la prochaine échéance (`+7j`) |
-| **Tool** | `get_pipeline_stats` | Retourne les KPIs globaux, taux de conversion et relances urgentes |
-| **Tool** | `generate_cover_letter_pdf` | Génère un fichier PDF de lettre de motivation et l’ajoute à la bibliothèque |
+| **Candidatures** | `list_applications` | Liste et filtre les candidatures (`type`, `status`, `search`, `due_followup`, `favorite`, `sort`) |
+| **Candidatures** | `get_application` | Récupère tous les détails et la timeline complète d’une candidature par ID |
+| **Candidatures** | `create_application` | Crée une nouvelle candidature complète dans SQLite avec événement initial |
+| **Candidatures** | `update_application` | Modifie n’importe quel champ d’une candidature existante (salaire, rythme, contact, notes, CV...) |
+| **Candidatures** | `update_application_status` | Met à jour le statut (`draft`, `applied`, `interview`, `technical`, `offer`, `rejected`) et journalise |
+| **Candidatures** | `toggle_application_favorite` | Active ou désactive l’étoile favori d’une candidature |
+| **Candidatures** | `delete_application` | Supprime définitivement une candidature et son historique |
+| **Relances & Timeline** | `mark_follow_up_done` | Enregistre une relance effectuée et décale la prochaine échéance (`+N` jours) |
+| **Relances & Timeline** | `add_timeline_event` | Ajoute un événement personnalisé dans le journal d’une candidature (entretien, test, note, appel) |
+| **Documents CV & LM** | `list_documents` | Liste tous les CV, lettres de motivation et rapports PDF de la bibliothèque |
+| **Documents CV & LM** | `get_document` | Récupère les métadonnées et URLs de lecture/téléchargement d’un document |
+| **Documents CV & LM** | `create_document` | Ajoute un nouveau document (CV, LM, portfolio ou PDF généré) à la bibliothèque |
+| **Documents CV & LM** | `update_document` | Met à jour le libellé, la version, la cible ou les notes d’un document existant |
+| **Documents CV & LM** | `delete_document` | Supprime un document de la bibliothèque et son fichier associé |
+| **Documents CV & LM** | `generate_cover_letter_pdf` | Génère une lettre de motivation en PDF A4 et la lie optionnellement à une candidature |
+| **Statistiques** | `get_pipeline_stats` | Retourne les KPIs globaux, taux de conversion par CV, entonnoir et relances urgentes |
+| **Page de Garde & PDF** | `get_pdf_cover_settings` | Lit la configuration actuelle de la Page de Garde des exports PDF |
+| **Page de Garde & PDF** | `update_pdf_cover_settings` | Personnalise la Page de Garde PDF (titre, candidat, école, thème couleur, note exécutive, KPIs) |
+| **Page de Garde & PDF** | `export_applications_pdf_report` | Génère un rapport PDF Paysage A4 avec Page de Garde et l’archive dans la bibliothèque |
+| **Import / Export** | `export_applications_data` | Exporte l’ensemble des candidatures en `JSON` ou `CSV` |
+| **Import / Export** | `import_applications_data` | Importe en lot un tableau de candidatures dans SQLite |
+| **Profil IA** | `get_or_update_ai_profile` | Lit ou met à jour le profil du candidat (nom, compétences, formation, modèle LLM) |
 | **Resource** | `alt-tracker://applications` | Flux JSON complet des candidatures |
 | **Resource** | `alt-tracker://stats` | Statistiques et KPIs du pipeline en temps réel |
-| **Resource** | `alt-tracker://documents` | Catalogue des CV et lettres de motivation enregistrés |
-| **Prompt** | `audit-pipeline` | Prompt pré-configuré d’audit complet du pipeline et des priorités |
-| **Prompt** | `draft-followup` | Prompt de rédaction de relance email + LinkedIn pour une candidature |
-| **Prompt** | `tailor-cover-letter` | Prompt de rédaction et génération PDF d’une lettre de motivation ciblée |
+| **Resource** | `alt-tracker://documents` | Catalogue des CV, lettres et rapports PDF enregistrés |
+| **Resource** | `alt-tracker://settings/pdf-cover` | Configuration active de la Page de Garde PDF |
+| **Resource** | `alt-tracker://settings/ai-profile` | Profil candidat et configuration du Copilote IA |
+| **Prompt** | `audit-pipeline` | Audit complet du pipeline, du taux de conversion CV et des priorités |
+| **Prompt** | `draft-followup` | Rédaction de relance email + LinkedIn pour une candidature |
+| **Prompt** | `tailor-cover-letter` | Rédaction et génération PDF d’une lettre de motivation ciblée |
+| **Prompt** | `prepare-official-pdf-report` | Configuration de la Page de Garde et génération d’un bilan PDF officiel |
 
 ---
 
@@ -118,18 +141,18 @@ Par défaut, au premier lancement, une base SQLite locale est initialisée dans 
 alt-tracker/
 ├── data/
 │   ├── alt-tracker.sqlite     # Base de données SQLite locale (créée automatiquement)
-│   └── uploads/               # Fichiers PDF/Images uploadés et lettres PDF générées
+│   └── uploads/               # Fichiers PDF/Images uploadés et lettres/rapports PDF générés
 ├── public/
-│   ├── index.html             # Interface Material Design 3.0 (6 vues + modales + Side Sheet)
+│   ├── index.html             # Interface Material Design 3.0 (6 vues + Studio PDF + Hub MCP + Side Sheet)
 │   ├── css/
 │   │   └── styles.css         # Système de tokens MD3, 5 thèmes, Dark Mode, Studio IA & Markdown GFM
 │   └── js/
 │       └── app.js             # Logique frontend SPA, Kanban Drag & Drop, Visionneuse PDF, Parseur GFM & Hub MCP
 ├── src/
-│   ├── server.js              # Serveur Express 5 & routes API REST / PDF / IA / MCP
-│   ├── db.js                  # Couche SQLite (node:sqlite), migrations, statistiques & générateurs PDF natifs
-│   ├── ai-agent.js            # Agent IA (OpenAI-compatible + Function Calling + Fallback local + Job Parser)
-│   └── mcp-server.js          # Serveur Model Context Protocol (stdio + HTTP JSON-RPC 2.0)
+│   ├── server.js              # Serveur Express 5 & routes API REST / PDF Cover / IA / MCP
+│   ├── db.js                  # Couche SQLite (node:sqlite), migrations, statistiques & générateurs PDF A4 + Page de Garde
+│   ├── ai-agent.js            # Agent IA (OpenAI-compatible + 22 outils MCP unifiés + Fallback local + Job Parser)
+│   └── mcp-server.js          # Serveur Model Context Protocol Full-App (22 tools, 5 resources, 4 prompts)
 ├── tests/
 │   └── api.test.js            # Tests d'intégration automatisés (node:test)
 └── package.json
@@ -151,16 +174,18 @@ alt-tracker/
 | `DELETE` | `/api/applications/:id` | Supprimer une candidature |
 | `GET` | `/api/stats` | Statistiques globales, entonnoir et relances urgentes |
 | `GET / POST` | `/api/documents` | Lister ou ajouter un document CV / Lettre de motivation |
+| `GET / PUT / DELETE` | `/api/documents/:id` | Lire, modifier ou supprimer un document |
 | `GET` | `/api/documents/:id/view` | Visualiser un PDF/Image en ligne (`inline`) |
 | `GET` | `/api/documents/:id/download` | Télécharger le fichier d’un document |
-| `GET` | `/api/export/pdf` | Générer le rapport PDF Paysage A4 de la liste des envois (`?inline=1` pour aperçu) |
+| `GET / PUT` | `/api/pdf/settings` | Lire ou enregistrer la configuration de la **Page de Garde PDF** |
+| `GET` | `/api/export/pdf` | Générer le rapport PDF Paysage A4 avec Page de Garde (`?inline=1`, `?cover=1/0`, `?theme=...`) |
 | `GET` | `/api/export/csv` | Exporter les candidatures au format CSV (UTF-8 BOM) |
 | `GET` | `/api/export/json` | Exporter une sauvegarde complète JSON |
 | `POST` | `/api/import` | Importer des candidatures depuis un fichier CSV ou JSON |
 | `GET / PUT` | `/api/ai/settings` | Lire ou configurer le fournisseur IA (OpenAI, Groq, Mistral, Ollama...) |
-| `POST` | `/api/ai/chat` | Envoyer un message au Copilote IA avec exécution d’outils |
+| `POST` | `/api/ai/chat` | Envoyer un message au Copilote IA (connecté aux 22 outils MCP) |
 | `POST` | `/api/ai/extract-job` | Extraire les champs structurés d’une offre d’emploi brute |
-| `GET` | `/api/mcp/info` | Informations du serveur MCP, outils exposés et configuration JSON |
+| `GET` | `/api/mcp/info` | Informations du serveur MCP, 22 outils exposés et configuration JSON |
 | `POST` | `/api/mcp` | Endpoint MCP JSON-RPC 2.0 (`initialize`, `tools/list`, `tools/call`, etc.) |
 | `GET / POST` | `/api/mcp/connectors` | Lister ou connecter un serveur MCP externe |
 

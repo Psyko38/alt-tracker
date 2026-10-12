@@ -105,9 +105,24 @@ function createDatabase(customDbPath) {
       endpoint_url TEXT NOT NULL,
       auth_token TEXT DEFAULT '',
       enabled INTEGER NOT NULL DEFAULT 1,
-      tools_count INTEGER NOT NULL DEFAULT 7,
+      tools_count INTEGER NOT NULL DEFAULT 22,
       last_status TEXT DEFAULT 'connected',
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS pdf_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      include_cover_page INTEGER NOT NULL DEFAULT 1,
+      report_title TEXT NOT NULL DEFAULT 'DOSSIER DE SUIVI DES CANDIDATURES',
+      report_subtitle TEXT NOT NULL DEFAULT 'Journal officiel des envois, relances et entretiens — Alternance & Emploi',
+      candidate_name TEXT NOT NULL DEFAULT 'Matteo',
+      school_or_program TEXT NOT NULL DEFAULT 'Formation Superieure / Ingenierie Logicielle & Web',
+      academic_year TEXT NOT NULL DEFAULT '2026 - 2027',
+      target_contract TEXT NOT NULL DEFAULT 'Alternance / Contrat d''apprentissage & CDI',
+      cover_note TEXT NOT NULL DEFAULT 'Ce dossier recapitule l''ensemble des demarches de recherche d''entreprise, l''etat d''avancement du pipeline de recrutement ainsi que le suivi rigoureux des relances effectuees aupres des employeurs.',
+      accent_theme TEXT NOT NULL DEFAULT 'iris',
+      show_kpi_boxes INTEGER NOT NULL DEFAULT 1,
+      updated_at TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
@@ -1135,20 +1150,171 @@ function createDatabase(customDbPath) {
     return imported;
   }
 
-  function exportApplicationsPdfBuffer(filters = {}) {
+  // --- PDF Cover Page Settings ---
+  function getPdfSettings() {
+    let row = db.prepare('SELECT * FROM pdf_settings WHERE id = 1').get();
+    if (!row) {
+      const now = nowIso();
+      const aiRow = db.prepare('SELECT candidate_name FROM ai_settings WHERE id = 1').get();
+      const defaultName = (aiRow && aiRow.candidate_name) || 'Matteo';
+      db.prepare(`
+        INSERT INTO pdf_settings (
+          id, include_cover_page, report_title, report_subtitle,
+          candidate_name, school_or_program, academic_year,
+          target_contract, cover_note, accent_theme, show_kpi_boxes, updated_at
+        ) VALUES (1, 1, ?, ?, ?, ?, ?, ?, ?, 'iris', 1, ?)
+      `).run(
+        'DOSSIER DE SUIVI DES CANDIDATURES',
+        'Journal officiel des envois, relances et entretiens — Alternance & Emploi',
+        defaultName,
+        'Formation Superieure / Ingenierie Logicielle & Web',
+        '2026 - 2027',
+        "Alternance / Contrat d'apprentissage & CDI",
+        "Ce dossier recapitule l'ensemble des demarches de recherche d'entreprise, l'etat d'avancement du pipeline de recrutement ainsi que le suivi rigoureux des relances effectuees aupres des employeurs.",
+        now
+      );
+      row = db.prepare('SELECT * FROM pdf_settings WHERE id = 1').get();
+    }
+    return {
+      ...row,
+      include_cover_page: Boolean(row.include_cover_page),
+      show_kpi_boxes: Boolean(row.show_kpi_boxes)
+    };
+  }
+
+  function savePdfSettings(data = {}) {
+    const current = getPdfSettings();
+    const now = nowIso();
+    const nextInclude =
+      data.include_cover_page !== undefined ? (data.include_cover_page ? 1 : 0) : (current.include_cover_page ? 1 : 0);
+    const nextKpi =
+      data.show_kpi_boxes !== undefined ? (data.show_kpi_boxes ? 1 : 0) : (current.show_kpi_boxes ? 1 : 0);
+
+    db.prepare(`
+      UPDATE pdf_settings SET
+        include_cover_page = ?,
+        report_title = ?,
+        report_subtitle = ?,
+        candidate_name = ?,
+        school_or_program = ?,
+        academic_year = ?,
+        target_contract = ?,
+        cover_note = ?,
+        accent_theme = ?,
+        show_kpi_boxes = ?,
+        updated_at = ?
+      WHERE id = 1
+    `).run(
+      nextInclude,
+      data.report_title !== undefined ? String(data.report_title).trim() : current.report_title,
+      data.report_subtitle !== undefined ? String(data.report_subtitle).trim() : current.report_subtitle,
+      data.candidate_name !== undefined ? String(data.candidate_name).trim() : current.candidate_name,
+      data.school_or_program !== undefined ? String(data.school_or_program).trim() : current.school_or_program,
+      data.academic_year !== undefined ? String(data.academic_year).trim() : current.academic_year,
+      data.target_contract !== undefined ? String(data.target_contract).trim() : current.target_contract,
+      data.cover_note !== undefined ? String(data.cover_note).trim() : current.cover_note,
+      data.accent_theme !== undefined ? String(data.accent_theme).trim() : current.accent_theme,
+      nextKpi,
+      now
+    );
+
+    return getPdfSettings();
+  }
+
+  function exportApplicationsPdfBuffer(filters = {}, coverOverrides = {}) {
     const apps = listApplications(filters);
     const stats = getStats();
+    const savedCover = getPdfSettings();
+
+    const mergedCover = {
+      ...savedCover,
+      ...coverOverrides
+    };
+    if (filters.cover !== undefined) {
+      mergedCover.include_cover_page =
+        filters.cover !== '0' && filters.cover !== 'false' && filters.cover !== false;
+    }
+    if (filters.report_title) mergedCover.report_title = filters.report_title;
+    if (filters.report_subtitle) mergedCover.report_subtitle = filters.report_subtitle;
+    if (filters.candidate_name) mergedCover.candidate_name = filters.candidate_name;
+    if (filters.school_or_program) mergedCover.school_or_program = filters.school_or_program;
+    if (filters.academic_year) mergedCover.academic_year = filters.academic_year;
+    if (filters.target_contract) mergedCover.target_contract = filters.target_contract;
+    if (filters.cover_note) mergedCover.cover_note = filters.cover_note;
+    if (filters.accent_theme) mergedCover.accent_theme = filters.accent_theme;
+    if (filters.show_kpi_boxes !== undefined) {
+      mergedCover.show_kpi_boxes =
+        filters.show_kpi_boxes !== '0' && filters.show_kpi_boxes !== 'false' && filters.show_kpi_boxes !== false;
+    }
+
+    const THEME_PALETTES = {
+      iris: {
+        primary: '0.247 0.216 0.545',
+        accent: '0.380 0.325 0.690',
+        container: '0.918 0.902 0.980',
+        softBg: '0.968 0.962 0.994',
+        darkText: '0.15 0.14 0.28'
+      },
+      emerald: {
+        primary: '0.047 0.420 0.345',
+        accent: '0.086 0.545 0.447',
+        container: '0.835 0.957 0.922',
+        softBg: '0.949 0.988 0.976',
+        darkText: '0.05 0.22 0.18'
+      },
+      ocean: {
+        primary: '0.043 0.341 0.816',
+        accent: '0.157 0.467 0.918',
+        container: '0.859 0.918 0.996',
+        softBg: '0.953 0.976 0.998',
+        darkText: '0.05 0.18 0.38'
+      },
+      terracotta: {
+        primary: '0.588 0.239 0.098',
+        accent: '0.737 0.329 0.165',
+        container: '0.992 0.898 0.855',
+        softBg: '0.996 0.965 0.949',
+        darkText: '0.28 0.11 0.05'
+      },
+      cherry: {
+        primary: '0.616 0.110 0.302',
+        accent: '0.776 0.180 0.408',
+        container: '0.992 0.886 0.922',
+        softBg: '0.996 0.961 0.973',
+        darkText: '0.28 0.06 0.14'
+      }
+    };
+
+    const palette = THEME_PALETTES[mergedCover.accent_theme] || THEME_PALETTES.iris;
 
     const cleanPdfText = (str, maxLen = 40) => {
       const ascii = String(str || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/['’]/g, "'")
+        .replace(/[—–]/g, '-')
         .replace(/[()\\]/g, '')
         .replace(/[^\x20-\x7E]/g, ' ')
         .trim();
       if (ascii.length <= maxLen) return ascii;
       return ascii.slice(0, Math.max(1, maxLen - 2)) + '..';
+    };
+
+    const wrapPdfLines = (str, maxChars = 95, maxLines = 3) => {
+      const words = cleanPdfText(str, maxChars * maxLines).split(/\s+/).filter(Boolean);
+      const lines = [];
+      let current = '';
+      for (const w of words) {
+        if ((current + ' ' + w).trim().length > maxChars) {
+          if (current) lines.push(current);
+          current = w;
+          if (lines.length >= maxLines) break;
+        } else {
+          current = (current + ' ' + w).trim();
+        }
+      }
+      if (current && lines.length < maxLines) lines.push(current);
+      return lines;
     };
 
     const workModeMap = {
@@ -1168,30 +1334,192 @@ function createDatabase(customDbPath) {
       }
     }
 
-    const pageContents = chunks.map((pageApps, pageIdx) => {
+    const hasCoverPage = Boolean(mergedCover.include_cover_page);
+    const totalPages = chunks.length + (hasCoverPage ? 1 : 0);
+    const genDate = todayStr();
+    const pageContents = [];
+
+    // --- Page 1: Material Design 3.0 Executive Cover Page (Page de Garde) ---
+    if (hasCoverPage) {
+      const coverCmds = [];
+
+      // Soft Page Background Frame
+      coverCmds.push(`${palette.softBg} rg`);
+      coverCmds.push('24 24 794 547 re f');
+
+      // Left Vertical Architectural Accent Ribbon
+      coverCmds.push(`${palette.primary} rg`);
+      coverCmds.push('24 24 16 547 re f');
+
+      // Hero Banner Card (Top)
+      coverCmds.push(`${palette.primary} rg`);
+      coverCmds.push('56 388 738 158 re f');
+
+      // Decorative Geometric Blocks inside Hero Banner
+      coverCmds.push(`${palette.accent} rg`);
+      coverCmds.push('640 388 154 158 re f');
+      coverCmds.push(`${palette.container} rg`);
+      coverCmds.push('740 492 54 54 re f');
+
+      // Hero Top Pill Badge
+      const yearStr = cleanPdfText(mergedCover.academic_year || '2026 - 2027', 24);
+      coverCmds.push('1 1 1 rg');
+      coverCmds.push(
+        `BT /F2 10 Tf 78 516 Td (ALT-TRACKER  |  PAGE DE GARDE OFFICIELLE  |  PROMOTION ${yearStr}) Tj ET`
+      );
+
+      // Hero Main Report Title & Subtitle
+      const titleText = cleanPdfText(mergedCover.report_title || 'DOSSIER DE SUIVI DES CANDIDATURES', 58);
+      const subText = cleanPdfText(
+        mergedCover.report_subtitle || 'Journal officiel des envois, relances et entretiens',
+        86
+      );
+      coverCmds.push(`BT /F2 22 Tf 78 474 Td (${titleText}) Tj ET`);
+      coverCmds.push(`BT /F1 11.5 Tf 78 446 Td (${subText}) Tj ET`);
+
+      // Hero Bottom Meta Strip
+      const filterDesc =
+        filters.type && filters.type !== 'all'
+          ? `Filtre Contrat : ${cleanPdfText(TYPE_LABELS[filters.type] || filters.type, 20)}`
+          : 'Perimetre : Toutes les candidatures';
+      coverCmds.push(
+        `BT /F2 9.5 Tf 78 410 Td (Date d'edition : ${genDate}   |   ${filterDesc}   |   ${apps.length} candidature(s) recensee(s)) Tj ET`
+      );
+
+      // --- Candidate & Academic Profile Card (Middle) ---
+      coverCmds.push('1 1 1 rg');
+      coverCmds.push('56 266 738 104 re f');
+      coverCmds.push(`${palette.container} RG 1.2 w`);
+      coverCmds.push('56 266 738 104 re S');
+
+      // Left Accent Bar on Profile Card
+      coverCmds.push(`${palette.accent} rg`);
+      coverCmds.push('56 266 6 104 re f');
+
+      const candName = cleanPdfText(mergedCover.candidate_name || 'Matteo', 38);
+      const schoolName = cleanPdfText(mergedCover.school_or_program || 'Formation Superieure', 44);
+      const contractTarget = cleanPdfText(mergedCover.target_contract || 'Alternance & Emploi', 44);
+
+      coverCmds.push(`${palette.darkText} rg`);
+      coverCmds.push('BT /F2 9 Tf 78 346 Td (CANDIDAT) Tj ET');
+      coverCmds.push(`BT /F2 13 Tf 78 329 Td (${candName}) Tj ET`);
+
+      coverCmds.push('BT /F2 9 Tf 78 302 Td (ECOLE / FORMATION / PROGRAMME) Tj ET');
+      coverCmds.push(`BT /F1 11 Tf 78 286 Td (${schoolName}) Tj ET`);
+
+      coverCmds.push('BT /F2 9 Tf 450 346 Td (CONTRAT & OBJECTIF RECHERCHE) Tj ET');
+      coverCmds.push(`BT /F2 11.5 Tf 450 329 Td (${contractTarget}) Tj ET`);
+
+      coverCmds.push('BT /F2 9 Tf 450 302 Td (SYNTHESE DU PIPELINE) Tj ET');
+      coverCmds.push(
+        `BT /F1 10.5 Tf 450 286 Td (Alternances : ${stats.byType?.alternance || 0}  |  Jobs : ${stats.byType?.job || 0}  |  Stages : ${stats.byType?.stage || 0}  |  Autres : ${(stats.byType?.freelance || 0) + (stats.byType?.autre || 0)}) Tj ET`
+      );
+
+      // --- 4 KPI Summary Cards on Cover Page ---
+      if (mergedCover.show_kpi_boxes) {
+        const interviewTotal = (stats.byStatus?.interview || 0) + (stats.byStatus?.technical || 0);
+        const kpiCards = [
+          {
+            label: 'CANDIDATURES LISTEES',
+            value: String(apps.length),
+            sub: `Dont ${stats.sentCount} envoyee(s)`
+          },
+          {
+            label: 'ENTRETIENS & TESTS',
+            value: String(interviewTotal),
+            sub: `Taux d'entretien : ${stats.interviewRate}%`
+          },
+          {
+            label: 'TAUX DE RETOUR GLOBAL',
+            value: `${stats.responseRate}%`,
+            sub: `Offre(s) recue(s) : ${stats.byStatus?.offer || 0}`
+          },
+          {
+            label: 'RELANCES PLANIFIEES',
+            value: String(stats.dueFollowUpsCount || 0),
+            sub: 'Suivi proactif recruteurs'
+          }
+        ];
+
+        kpiCards.forEach((kpi, idx) => {
+          const kx = 56 + idx * 188;
+          const ky = 172;
+          const kw = 176;
+          const kh = 78;
+
+          coverCmds.push('1 1 1 rg');
+          coverCmds.push(`${kx} ${ky} ${kw} ${kh} re f`);
+          coverCmds.push(`${palette.container} rg`);
+          coverCmds.push(`${kx} ${ky + kh - 6} ${kw} 6 re f`);
+
+          coverCmds.push(`${palette.darkText} rg`);
+          coverCmds.push(`BT /F2 8 Tf ${kx + 14} ${ky + 54} Td (${kpi.label}) Tj ET`);
+          coverCmds.push(`${palette.primary} rg`);
+          coverCmds.push(`BT /F2 20 Tf ${kx + 14} ${ky + 28} Td (${cleanPdfText(kpi.value, 12)}) Tj ET`);
+          coverCmds.push('0.38 0.38 0.45 rg');
+          coverCmds.push(`BT /F1 8.5 Tf ${kx + 14} ${ky + 12} Td (${cleanPdfText(kpi.sub, 26)}) Tj ET`);
+        });
+      }
+
+      // --- Cover Note / Presentation Box (Bottom) ---
+      coverCmds.push(`${palette.container} rg`);
+      coverCmds.push('56 64 738 90 re f');
+      coverCmds.push(`${palette.primary} rg`);
+      coverCmds.push('56 64 5 90 re f');
+
+      coverCmds.push(`${palette.darkText} rg`);
+      coverCmds.push('BT /F2 9.5 Tf 74 134 Td (NOTE DE SYNTHESE & PRESENTATION DU DOSSIER) Tj ET');
+
+      const noteLines = wrapPdfLines(
+        mergedCover.cover_note ||
+          "Ce dossier recapitule l'ensemble des demarches de recherche d'entreprise et le suivi des relances.",
+        98,
+        3
+      );
+      let noteY = 114;
+      noteLines.forEach((nl) => {
+        coverCmds.push(`BT /F1 9.5 Tf 74 ${noteY} Td (${nl}) Tj ET`);
+        noteY -= 15;
+      });
+
+      // Cover Page Footer
+      coverCmds.push('0.42 0.42 0.48 rg');
+      coverCmds.push(
+        `BT /F1 8.5 Tf 56 36 Td (Alt-Tracker Material Design 3.0  -  Dossier de suivi des candidatures de ${candName}) Tj ET`
+      );
+      coverCmds.push(`BT /F2 9 Tf 715 36 Td (Page 1 / ${totalPages}) Tj ET`);
+
+      pageContents.push(coverCmds.join('\n'));
+    }
+
+    // --- Subsequent Pages: Paginated Applications Table ---
+    chunks.forEach((pageApps, chunkIdx) => {
+      const pageNumber = chunkIdx + 1 + (hasCoverPage ? 1 : 0);
       const cmds = [];
 
-      // Header Banner (Material 3 Deep Iris #3F378B -> rgb 0.247 0.216 0.545)
-      cmds.push('0.247 0.216 0.545 rg');
+      // Header Banner
+      cmds.push(`${palette.primary} rg`);
       cmds.push('30 515 782 54 re f');
 
       // Header Text (White)
       cmds.push('1 1 1 rg');
-      cmds.push('BT /F2 15 Tf 44 544 Td (ALT-TRACKER  -  LISTE OFFICIELLE DES CANDIDATURES & ENVOIS) Tj ET');
-      const genDate = todayStr();
+      const headerTitle = cleanPdfText(
+        mergedCover.report_title || 'ALT-TRACKER - LISTE OFFICIELLE DES CANDIDATURES & ENVOIS',
+        56
+      );
+      const candLabel = cleanPdfText(mergedCover.candidate_name || 'Matteo', 24);
+      cmds.push(`BT /F2 14 Tf 44 544 Td (${headerTitle}  -  ${candLabel}) Tj ET`);
       cmds.push(
         `BT /F1 9.5 Tf 44 526 Td (Export PDF du ${genDate}  |  Total : ${apps.length} candidature(s)  |  Envoyees : ${stats.sentCount}  |  Taux de retour : ${stats.responseRate}%  |  Taux d'entretien : ${stats.interviewRate}%) Tj ET`
       );
-      cmds.push(
-        `BT /F2 10 Tf 740 536 Td (Page ${pageIdx + 1} / ${chunks.length}) Tj ET`
-      );
+      cmds.push(`BT /F2 10 Tf 735 536 Td (Page ${pageNumber} / ${totalPages}) Tj ET`);
 
-      // Table Header Bar (#EAE6FA -> rgb 0.918 0.902 0.980)
-      cmds.push('0.918 0.902 0.980 rg');
+      // Table Header Bar
+      cmds.push(`${palette.container} rg`);
       cmds.push('30 484 782 24 re f');
 
-      // Table Header Labels (Dark text)
-      cmds.push('0.15 0.14 0.28 rg');
+      // Table Header Labels
+      cmds.push(`${palette.darkText} rg`);
       cmds.push('BT /F2 8.5 Tf 38 493 Td (ENTREPRISE) Tj ET');
       cmds.push('BT /F2 8.5 Tf 155 493 Td (INTITULE DU POSTE) Tj ET');
       cmds.push('BT /F2 8.5 Tf 335 493 Td (CONTRAT) Tj ET');
@@ -1207,13 +1535,11 @@ function createDatabase(customDbPath) {
         cmds.push('BT /F1 11 Tf 38 450 Td (Aucune candidature correspondant aux filtres selectionnes.) Tj ET');
       } else {
         pageApps.forEach((app, idx) => {
-          // Alternating Zebra Row Background
           if (idx % 2 === 1) {
-            cmds.push('0.965 0.965 0.985 rg');
+            cmds.push(`${palette.softBg} rg`);
             cmds.push(`30 ${y - 6} 782 22 re f`);
           }
 
-          // Subtle row divider line
           cmds.push('0.88 0.88 0.92 RG 0.5 w');
           cmds.push(`30 ${y - 6} m 812 ${y - 6} l S`);
 
@@ -1246,15 +1572,13 @@ function createDatabase(customDbPath) {
       // Footer
       cmds.push('0.45 0.45 0.52 rg');
       cmds.push(
-        `BT /F1 8 Tf 34 22 Td (Alt-Tracker Material Design 3.0  -  Rapport PDF genere automatiquement  -  MCP & OpenAI Ready) Tj ET`
+        `BT /F1 8 Tf 34 22 Td (Alt-Tracker Material Design 3.0  -  Dossier de ${candLabel} (${cleanPdfText(mergedCover.academic_year || '2026-2027', 16)})  -  Page ${pageNumber} / ${totalPages}) Tj ET`
       );
 
-      return cmds.join('\n');
+      pageContents.push(cmds.join('\n'));
     });
 
     // Assemble multi-page PDF objects
-    // 1: Catalog, 2: Pages, 3: Font Helvetica, 4: Font Helvetica-Bold
-    // Then for each page i: pageObjId = 5 + i*2, contentObjId = 6 + i*2
     const objects = [];
     const pageObjIds = pageContents.map((_, idx) => 5 + idx * 2);
 
@@ -1306,7 +1630,7 @@ function createDatabase(customDbPath) {
         'http://localhost:3000/api/mcp',
         '',
         1,
-        7,
+        22,
         'connected',
         now
       );
@@ -1375,6 +1699,8 @@ function createDatabase(customDbPath) {
     deleteDocument,
     getAiSettings,
     saveAiSettings,
+    getPdfSettings,
+    savePdfSettings,
     getStats,
     exportCsv,
     exportApplicationsPdfBuffer,
