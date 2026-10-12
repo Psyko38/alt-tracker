@@ -1,568 +1,898 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" data-theme="light" data-palette="iris">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="color-scheme" content="light dark" />
-  <meta name="description" content="Suivi de candidatures (jobs, alternance, stages) : statistiques, recherche, filtres et tableau éditable sur une seule page." />
-  <title>Suivi de candidatures</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%23b1552c'/%3E%3Ccircle cx='16' cy='16' r='7.5' fill='none' stroke='%23fffaf4' stroke-width='2.2'/%3E%3Ccircle cx='16' cy='16' r='2.6' fill='%23fffaf4'/%3E%3C/svg%3E" />
-  <link rel="stylesheet" href="/tabulator.css" />
-  <link rel="stylesheet" href="/style.css" />
-  <script>
-    // Thème appliqué avant le premier rendu pour éviter un flash clair/sombre
-    try {
-      var stored = localStorage.getItem("jt-theme");
-      var theme = stored || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-      document.documentElement.setAttribute("data-theme", theme);
-    } catch (e) { /* mode privé : thème clair par défaut */ }
-  </script>
+  <title>Alt-Tracker — Suivi de Candidatures (Material Design 3)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/md3-tokens.css" />
+  <link rel="stylesheet" href="/css/styles.css" />
 </head>
 <body>
-  <!-- ==========================================================================
-       Jeu d'icônes — un seul dessin par icône, trait de 1,6 px, mêmes extrémités.
-       Le style (taille, épaisseur, couleur) vient de la classe .ico ; les formes
-       ci-dessous ne portent aucune couleur pour hériter de l'élément <use>.
-       ========================================================================== -->
-  <svg class="svg-sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-    <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.4" /><circle cx="12" cy="12" r="3.6" /><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" /></symbol>
-    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2.6v2.2M12 19.2v2.2M4.3 4.3 5.9 5.9M18.1 18.1l1.6 1.6M2.6 12h2.2M19.2 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6" /></symbol>
-    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.3A8.25 8.25 0 1 1 9.7 4a6.6 6.6 0 0 0 10.3 10.3Z" /></symbol>
-    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v10.4M12 14.4l4-4M12 14.4l-4-4M4.8 19h14.4" /></symbol>
-    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.2V4.8M12 4.8l4 4M12 4.8l-4 4M4.8 19h14.4" /></symbol>
-    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.4v13.2M5.4 12h13.2" /></symbol>
-    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.2" /><path d="m15.5 15.5 4.1 4.1" /></symbol>
-    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.8 12S6.5 6.2 12 6.2 21.2 12 21.2 12 17.5 17.8 12 17.8 2.8 12 2.8 12Z" /><circle cx="12" cy="12" r="2.6" /></symbol>
-    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6.6 9.8a5.4 5.4 0 0 1 10.8 0c0 3.9 1.5 5.4 1.5 5.4H5.1s1.5-1.5 1.5-5.4Z" /><path d="M10.2 18.4a1.95 1.95 0 0 0 3.6 0" /></symbol>
-    <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3.6" y="4.6" width="16.8" height="14.8" rx="2.4" /><path d="M9.6 4.6v14.8M14.4 4.6v14.8" /></symbol>
-    <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="6.3" rx="7.2" ry="2.7" /><path d="M4.8 6.3v11.4c0 1.5 3.2 2.7 7.2 2.7s7.2-1.2 7.2-2.7V6.3" /><path d="M4.8 12c0 1.5 3.2 2.7 7.2 2.7s7.2-1.2 7.2-2.7" /></symbol>
-    <symbol id="i-file-text" viewBox="0 0 24 24"><path d="M13.6 3.6h-5.1a2.1 2.1 0 0 0-2.1 2.1v12.6a2.1 2.1 0 0 0 2.1 2.1h7.4a2.1 2.1 0 0 0 2.1-2.1V8.1Z" /><path d="M13.6 3.6v4.5h4.4" /><path d="M8.8 13h6.4M8.8 16.4h4.2" /></symbol>
-    <symbol id="i-table" viewBox="0 0 24 24"><rect x="3.8" y="4.8" width="16.4" height="14.4" rx="2.4" /><path d="M3.8 9.9h16.4M10.1 9.9v9.3" /></symbol>
-    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3.6" y="4.8" width="16.8" height="14.4" rx="2.4" /><circle cx="9.2" cy="10" r="1.6" /><path d="m4.6 17.6 4.3-4.1a1.7 1.7 0 0 1 2.3 0l3.3 3.1a1.7 1.7 0 0 0 2.3 0l2.6-2.4" /></symbol>
-    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.3" /><path d="M12 7.6V12l3.2 2" /></symbol>
-    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.6 7.1h14.8M9.6 7.1V4.9h4.8v2.2M6.9 7.1l.8 12a1.8 1.8 0 0 0 1.8 1.7h5a1.8 1.8 0 0 0 1.8-1.7l.8-12" /><path d="M10.4 10.8v6.3M13.6 10.8v6.3" /></symbol>
-    <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M4.6 19.4h3.2L19.2 8a2 2 0 0 0 0-2.8l-.4-.4a2 2 0 0 0-2.8 0L4.6 16.2Z" /><path d="m14.8 6.4 3.1 3.1" /></symbol>
-    <symbol id="i-note" viewBox="0 0 24 24"><path d="M5.4 4.6h8.2l4.9 4.9v9.9H5.4Z" /><path d="M13.6 4.6v4.9h4.9" /><path d="M8.6 13.2h6M8.6 16.4h4" /></symbol>
-    <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4.2 13.6 6.4 6.2a1.9 1.9 0 0 1 1.8-1.4h7.6a1.9 1.9 0 0 1 1.8 1.4l2.2 7.4v4.1a2.1 2.1 0 0 1-2.1 2.1H6.3a2.1 2.1 0 0 1-2.1-2.1Z" /><path d="M4.2 13.6h4.2l1.1 2h5l1.1-2h4.2" /></symbol>
-    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5.2 12.4 4.6 4.6L18.8 7.4" /></symbol>
-    <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 4.6 3.6 19.2h16.8Z" /><path d="M12 10v4.2" /><path d="M12 16.9v.01" /></symbol>
-    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.3" /><path d="M12 11.1v5.3" /><path d="M12 7.9v.01" /></symbol>
-    <symbol id="i-ban" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.3" /><path d="m6.1 17.9 11.8-11.8" /></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="m6.6 6.6 10.8 10.8M17.4 6.6 6.6 17.4" /></symbol>
-    <symbol id="i-chevron-down" viewBox="0 0 24 24"><path d="m6.8 9.8 5.2 5.2 5.2-5.2" /></symbol>
-    <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M4.4 12h15M19.4 12l-5.4-5.4M19.4 12l-5.4 5.4" /></symbol>
-    <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="M19.6 12h-15M4.6 12l5.4-5.4M4.6 12l5.4 5.4" /></symbol>
-    <!-- Poignée de déplacement : six points, comme les barres de préhension des
-         interfaces où l'on saisit une carte pour la déplacer. -->
-    <symbol id="i-grip" viewBox="0 0 24 24"><circle cx="9.3" cy="7.2" r="1.5" fill="currentColor" stroke="none" /><circle cx="14.7" cy="7.2" r="1.5" fill="currentColor" stroke="none" /><circle cx="9.3" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="14.7" cy="12" r="1.5" fill="currentColor" stroke="none" /><circle cx="9.3" cy="16.8" r="1.5" fill="currentColor" stroke="none" /><circle cx="14.7" cy="16.8" r="1.5" fill="currentColor" stroke="none" /></symbol>
-    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9.7 5.3 5.4 9.6l4.3 4.3" /><path d="M5.4 9.6h8.7a5.3 5.3 0 0 1 0 10.6H9.2" /></symbol>
-    <symbol id="i-trending-up" viewBox="0 0 24 24"><path d="m4 16.8 5.4-5.4 3.4 3.4 7.2-7.2" /><path d="M15.6 7.6h4.4v4.4" /></symbol>
-    <symbol id="i-clipboard" viewBox="0 0 24 24"><rect x="5.4" y="5" width="13.2" height="15.2" rx="2.4" /><path d="M9.4 5V3.9h5.2V5" /><path d="M9 11.2h6M9 15.2h4" /></symbol>
-    <symbol id="i-send" viewBox="0 0 24 24"><path d="M20.4 3.6 3.9 10.3l6.5 2.4 2.4 6.5Z" /><path d="m10.4 12.7 10-9.1" /></symbol>
-    <symbol id="i-calendar-check" viewBox="0 0 24 24"><rect x="3.6" y="5.4" width="16.8" height="15" rx="2.4" /><path d="M3.6 10h16.8M8.6 3.6v3.6M15.4 3.6v3.6" /><path d="m9.4 15.4 1.9 1.9 3.6-3.7" /></symbol>
-    <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4.4 8h8.2M17.6 8h2M4.4 16h3.2M12.6 16h7" /><circle cx="15" cy="8" r="2.1" /><circle cx="10" cy="16" r="2.1" /></symbol>
-  </svg>
+  <div class="m3-app-layout">
+    <!-- ==================== M3 Navigation Rail ==================== -->
+    <aside class="m3-nav-rail" aria-label="Navigation principale">
+      <a href="#dashboard" class="m3-brand-logo" id="brand-home-link">
+        <div class="m3-brand-icon">
+          <span class="material-symbols-rounded filled">work_history</span>
+        </div>
+        <span class="m3-brand-text">Alt-Tracker</span>
+      </a>
 
-  <a class="skip-link" href="#main">Aller au contenu principal</a>
-
-  <header class="app-bar">
-    <div class="brand">
-      <span class="brand-mark" aria-hidden="true"><svg class="ico"><use href="#i-target"></use></svg></span>
-      <div class="brand-text">
-        <h1>Suivi de candidatures</h1>
-        <p class="brand-sub">Jobs, alternance, stages — tout sur une seule page</p>
-      </div>
-    </div>
-
-    <div class="app-actions">
-      <button id="btn-theme" class="btn icon" type="button" title="Thème clair / sombre" aria-label="Changer de thème">
-        <svg id="theme-icon" class="ico" aria-hidden="true"><use href="#i-moon"></use></svg>
+      <button class="m3-rail-fab" id="fab-new-app" title="Nouvelle candidature (Raccourci : N)">
+        <span class="material-symbols-rounded">add</span>
       </button>
 
-      <div class="dropdown">
-        <button id="btn-export-menu" class="btn" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="export-menu" aria-label="Exporter" title="Exporter en JSON, PDF ou CSV">
-          <svg class="ico" aria-hidden="true"><use href="#i-download"></use></svg>
-          <span class="btn-label">Exporter</span>
-          <svg class="ico ico-xs caret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
+      <nav class="m3-nav-destinations">
+        <button class="m3-nav-item active" data-view="dashboard">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">space_dashboard</span>
+          </span>
+          <span class="m3-nav-label">Dashboard</span>
         </button>
-        <div id="export-menu" class="dropdown-menu hidden" role="menu" aria-labelledby="btn-export-menu">
-          <p class="menu-note" id="export-note"></p>
-          <button type="button" role="menuitem" data-export="json">
-            <svg class="ico" aria-hidden="true"><use href="#i-database"></use></svg>
-            <span>JSON <span class="hint">sauvegarde complète</span></span>
-          </button>
-          <button type="button" role="menuitem" data-export="pdf">
-            <svg class="ico" aria-hidden="true"><use href="#i-file-text"></use></svg>
-            <span>PDF <span class="hint" id="export-pdf-hint">tableau imprimable</span></span>
-          </button>
-          <button type="button" role="menuitem" data-export="csv">
-            <svg class="ico" aria-hidden="true"><use href="#i-table"></use></svg>
-            <span>CSV <span class="hint" id="export-csv-hint">Excel / Sheets</span></span>
-          </button>
-          <button type="button" role="menuitem" data-cover>
-            <svg class="ico" aria-hidden="true"><use href="#i-image"></use></svg>
-            <span>Page de garde <span class="hint" id="cover-menu-hint">désactivée</span></span>
-          </button>
-          <button type="button" role="menuitem" data-backups>
-            <svg class="ico" aria-hidden="true"><use href="#i-clock"></use></svg>
-            <span>Sauvegardes <span class="hint" id="backups-menu-hint">instantanés de la base</span></span>
-          </button>
+
+        <button class="m3-nav-item" data-view="kanban">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">view_kanban</span>
+          </span>
+          <span class="m3-nav-label">Kanban</span>
+        </button>
+
+        <button class="m3-nav-item" data-view="list">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">table_rows</span>
+          </span>
+          <span class="m3-nav-label">Liste</span>
+        </button>
+
+        <button class="m3-nav-item" data-view="followups">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">notifications_active</span>
+            <span class="m3-nav-badge hidden" id="nav-followup-badge">0</span>
+          </span>
+          <span class="m3-nav-label">Relances</span>
+        </button>
+
+        <button class="m3-nav-item" data-view="documents">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">description</span>
+          </span>
+          <span class="m3-nav-label">CV & LM</span>
+        </button>
+
+        <button class="m3-nav-item" data-view="agent">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">auto_awesome</span>
+          </span>
+          <span class="m3-nav-label">Agent IA</span>
+        </button>
+      </nav>
+
+      <div class="m3-nav-footer">
+        <button class="m3-icon-btn" id="btn-open-import-export" title="Importer / Exporter (CSV & JSON)">
+          <span class="material-symbols-rounded">swap_vert</span>
+        </button>
+        <button class="m3-icon-btn" id="btn-theme-toggle" title="Basculer Mode Clair / Sombre">
+          <span class="material-symbols-rounded" id="theme-toggle-icon">dark_mode</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ==================== Main Content Container ==================== -->
+    <main class="m3-main-wrapper">
+      <!-- M3 Top App Bar -->
+      <header class="m3-top-app-bar">
+        <div class="m3-top-title-group">
+          <h1 class="m3-headline" id="view-title">Tableau de bord</h1>
+          <p class="m3-subtitle" id="view-subtitle">Vue d’ensemble de vos candidatures d’alternance, emploi et stage</p>
         </div>
-      </div>
 
-      <button id="btn-import" class="btn" type="button" title="Restaurer un export JSON" aria-label="Importer un fichier JSON">
-        <svg class="ico" aria-hidden="true"><use href="#i-upload"></use></svg>
-        <span class="btn-label">Importer</span>
-      </button>
-      <input type="file" id="import-file" accept=".json,application/json" hidden />
-
-      <button id="btn-add" class="btn primary" type="button" aria-label="Nouvelle candidature">
-        <svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg>
-        <span class="btn-label">Nouvelle candidature</span>
-        <kbd aria-hidden="true">N</kbd>
-      </button>
-    </div>
-  </header>
-
-  <main id="main">
-    <!-- Tableau de bord « bento » — un plateau que js/dashboard.js remplit lui-même :
-         il monte chaque widget de son catalogue en clonant le gabarit correspondant
-         (voir le bloc de <template> plus bas), puis le déplace, le redimensionne, le
-         retire et le remet. Ni la liste des widgets, ni leur ordre, ni leur largeur ne
-         sont écrits ici : la disposition vit dans le navigateur. -->
-    <section class="overview" aria-labelledby="overview-title">
-      <div class="overview-head">
-        <h2 id="overview-title">Tableau de bord</h2>
-        <div class="overview-actions">
-          <div class="dropdown">
-            <button id="btn-widgets" class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="widgets-menu" aria-label="Ajouter ou retirer des widgets" title="Ajouter ou retirer des widgets">
-              <svg class="ico" aria-hidden="true"><use href="#i-columns"></use></svg>
-              <span class="btn-label">Widgets</span>
-              <svg class="ico ico-xs caret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
-            </button>
-            <div id="widgets-menu" class="dropdown-menu columns-menu hidden"></div>
-          </div>
-          <button id="btn-layout" class="btn" type="button" aria-pressed="false" title="Déplacer, redimensionner et retirer les widgets">
-            <svg class="ico" aria-hidden="true"><use href="#i-sliders"></use></svg>
-            <span class="btn-label">Organiser</span>
-          </button>
-          <button id="btn-layout-reset" class="btn ghost hidden" type="button" title="Revenir à la disposition d'origine">
-            <svg class="ico" aria-hidden="true"><use href="#i-undo"></use></svg>
-            <span class="btn-label">Réinitialiser</span>
-          </button>
+        <div class="m3-search-bar" role="search">
+          <span class="material-symbols-rounded">search</span>
+          <input
+            type="search"
+            id="global-search"
+            placeholder="Rechercher une entreprise, un poste, une ville, un CV..."
+            autocomplete="off"
+          />
+          <span class="m3-kbd-hint">/</span>
         </div>
-      </div>
 
-      <!-- Relances dues : un état de la liste, pas un widget — il reste donc hors
-           du plateau, avant lui. La liste est une carte que l'utilisateur range
-           (et peut retirer) : la place « juste au-dessus de la liste » n'existe
-           plus, et un bandeau de relance posé dans le plateau disparaîtrait avec
-           la carte de la liste. -->
-      <div id="alert-bar" class="alert-bar hidden" role="status">
-        <svg class="ico alert-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
-        <span id="alert-text"></span>
-        <button id="alert-action" class="btn small" type="button">Voir les relances</button>
-      </div>
-
-      <div id="bento" class="bento" data-edit="false"></div>
-    </section>
-
-    <!-- Contenus des widgets — un seul endroit et un seul mécanisme pour ce qu'il y a
-         DANS chaque bloc du tableau de bord : un <template> par widget, nommé
-         `tpl-<id du widget>`, que le catalogue (public/js/dashboard.js) désigne par son
-         id. Ces gabarits sont inertes : le plateau les clone au démarrage, et n'attache,
-         ne détache et ne replace jamais que la copie. Ajouter un widget = une entrée au
-         catalogue + son gabarit ici ; les tests tiennent les deux d'accord. -->
-    <template id="tpl-stat-total"><div class="stat" id="stat-total"></div></template>
-    <template id="tpl-stat-sent"><div class="stat" id="stat-sent"></div></template>
-    <template id="tpl-stat-interview"><div class="stat" id="stat-interview"></div></template>
-    <template id="tpl-stat-rate"><div class="stat" id="stat-rate"></div></template>
-    <template id="tpl-stat-refused"><div class="stat" id="stat-refused"></div></template>
-    <template id="tpl-stat-followup"><div class="stat" id="stat-followup"></div></template>
-
-    <!-- Évolution des candidatures -->
-    <template id="tpl-chart-monthly">
-      <div class="dashboard-card">
-        <div class="dashboard-card-head">
-          <div>
-            <h2>Évolution des candidatures</h2>
-            <p class="muted small">12 derniers mois</p>
-          </div>
-          <span class="dashboard-badge">SQLite · temps réel</span>
-        </div>
-        <div class="chart-wrap"><canvas id="applications-chart" aria-label="Évolution mensuelle des candidatures" role="img"></canvas></div>
-      </div>
-    </template>
-
-    <!-- Répartition par statut -->
-    <template id="tpl-chart-status">
-      <div class="dashboard-card">
-        <div class="dashboard-card-head"><h2>Répartition par statut</h2></div>
-        <div class="chart-wrap chart-doughnut"><canvas id="status-chart" aria-label="Répartition des candidatures par statut" role="img"></canvas></div>
-      </div>
-    </template>
-
-    <!-- Types de contrat -->
-    <template id="tpl-chart-type">
-      <div class="dashboard-card">
-        <div class="dashboard-card-head"><h2>Types de contrat</h2></div>
-        <div class="chart-wrap chart-doughnut"><canvas id="type-chart" aria-label="Répartition des candidatures par type" role="img"></canvas></div>
-      </div>
-    </template>
-
-    <!-- Rendement de la recherche -->
-    <template id="tpl-insights">
-      <div class="dashboard-card">
-        <div class="dashboard-card-head">
-          <div>
-            <h2>Rendement de la recherche</h2>
-            <p class="muted small">Quel canal répond, en combien de temps, et jusqu'où ça va</p>
-          </div>
-          <span class="dashboard-badge" id="insights-delay">—</span>
-        </div>
-        <p class="muted small insights-note">Étapes atteintes : l'historique compte — un entretien suivi d'un refus reste dans l'entonnoir.</p>
-        <ol class="funnel" id="insights-funnel"></ol>
-        <div class="insights-sources" id="insights-sources"></div>
-      </div>
-    </template>
-
-    <!-- Recherche & filtres -->
-    <template id="tpl-filters">
-      <section class="card toolbar" aria-labelledby="toolbar-title">
-        <h2 id="toolbar-title" class="sr-only">Recherche et filtres</h2>
-
-        <div class="toolbar-row">
-          <div class="search-wrap">
-            <svg class="ico search-icon" aria-hidden="true"><use href="#i-search"></use></svg>
-            <input id="search" type="search" placeholder="Rechercher (entreprise, poste, lieu, contact, notes…)" aria-label="Rechercher une candidature" autocomplete="off" />
-            <button id="search-clear" class="search-clear hidden" type="button" aria-label="Effacer la recherche">
-              <svg class="ico ico-xs" aria-hidden="true"><use href="#i-x"></use></svg>
-            </button>
+        <div class="m3-top-actions">
+          <div class="m3-palette-picker" title="Palette dynamique Material You">
+            <button class="m3-palette-dot active" data-color="iris" title="Iris (Violet M3)"></button>
+            <button class="m3-palette-dot" data-color="emerald" title="Émeraude"></button>
+            <button class="m3-palette-dot" data-color="ocean" title="Océan"></button>
+            <button class="m3-palette-dot" data-color="terracotta" title="Terracotta"></button>
+            <button class="m3-palette-dot" data-color="rose" title="Cerise"></button>
           </div>
 
-          <select id="filter-type" aria-label="Filtrer par type de contrat">
-            <option value="">Tous les types</option>
+          <button class="m3-btn m3-btn-tonal" id="btn-top-import-export">
+            <span class="material-symbols-rounded">download</span>
+            <span>Import / Export</span>
+          </button>
+
+          <button class="m3-btn m3-btn-filled" id="btn-top-new-app">
+            <span class="material-symbols-rounded">add</span>
+            <span>Nouvelle candidature</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- M3 Filter Chips Bar -->
+      <section class="m3-filter-bar" aria-label="Filtres rapides">
+        <div class="m3-chip-group" id="type-filter-chips">
+          <button class="m3-filter-chip active" data-type="all">
+            <span class="material-symbols-rounded">done_all</span>
+            <span>Tous les contrats</span>
+          </button>
+          <button class="m3-filter-chip" data-type="alternance">
+            <span class="material-symbols-rounded">school</span>
+            <span>Alternance</span>
+          </button>
+          <button class="m3-filter-chip" data-type="job">
+            <span class="material-symbols-rounded">business_center</span>
+            <span>Job (CDI/CDD)</span>
+          </button>
+          <button class="m3-filter-chip" data-type="stage">
+            <span class="material-symbols-rounded">badge</span>
+            <span>Stage</span>
+          </button>
+          <button class="m3-filter-chip" data-type="freelance">
+            <span class="material-symbols-rounded">laptop_mac</span>
+            <span>Freelance</span>
+          </button>
+          <button class="m3-filter-chip" data-type="autre">
+            <span class="material-symbols-rounded">category</span>
+            <span>Autre</span>
+          </button>
+        </div>
+
+        <div class="m3-filter-controls">
+          <button class="m3-filter-chip" id="chip-due-followup">
+            <span class="material-symbols-rounded">schedule_send</span>
+            <span>À relancer</span>
+          </button>
+          <button class="m3-filter-chip" id="chip-favorites">
+            <span class="material-symbols-rounded">star</span>
+            <span>Favoris</span>
+          </button>
+
+          <select class="m3-select" id="filter-status" aria-label="Filtrer par statut">
+            <option value="all">Tous les statuts</option>
+            <option value="draft">À postuler (Brouillon)</option>
+            <option value="applied">Envoyée</option>
+            <option value="interview">Entretien RH</option>
+            <option value="technical">Test / Entretien Tech</option>
+            <option value="offer">Offre reçue</option>
+            <option value="rejected">Refusée</option>
           </select>
 
-          <!-- Plage de dates : bornes incluses, sur la démarche (défaut) ou la relance -->
-          <div class="date-filter" role="group" aria-label="Filtrer par plage de dates">
-            <select id="filter-date-field" aria-label="Date sur laquelle porte la plage" title="Date sur laquelle porte la plage">
-              <option value="dateDemarche">Démarche</option>
-              <option value="nextAction">Relance prévue</option>
+          <select class="m3-select" id="filter-sort" aria-label="Trier les candidatures">
+            <option value="updated_desc">Tri : Récemment modifiées</option>
+            <option value="applied_desc">Tri : Date d’envoi</option>
+            <option value="followup_asc">Tri : Relance la plus proche</option>
+            <option value="priority_desc">Tri : Priorité</option>
+            <option value="company_asc">Tri : Entreprise (A-Z)</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 1: DASHBOARD ==================== -->
+      <section class="m3-view-section active" id="view-dashboard">
+        <div class="m3-kpi-grid" id="dashboard-kpi-grid"></div>
+
+        <div class="m3-dashboard-grid">
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">notifications_active</span>
+                Relances prioritaires & Entretiens à venir
+              </h2>
+              <button class="m3-btn m3-btn-text m3-btn-sm" id="btn-goto-followups">Tout voir</button>
+            </div>
+            <div class="m3-action-list" id="dashboard-urgent-list"></div>
+          </div>
+
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">donut_large</span>
+                Répartition par contrat & Pipeline
+              </h2>
+            </div>
+            <div class="m3-bar-list" id="dashboard-distribution-bars"></div>
+          </div>
+        </div>
+
+        <div class="m3-dashboard-grid">
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">analytics</span>
+                Efficacité par version de CV
+              </h2>
+              <button class="m3-btn m3-btn-text m3-btn-sm" id="btn-goto-documents">Gérer mes CV</button>
+            </div>
+            <div class="m3-action-list" id="dashboard-cv-stats"></div>
+          </div>
+
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">history</span>
+                Activité récente
+              </h2>
+            </div>
+            <div class="m3-action-list" id="dashboard-recent-events"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 2: KANBAN ==================== -->
+      <section class="m3-view-section" id="view-kanban">
+        <div class="m3-kanban-board" id="kanban-board"></div>
+      </section>
+
+      <!-- ==================== VIEW 3: LIST / TABLE ==================== -->
+      <section class="m3-view-section" id="view-list">
+        <div class="m3-table-container">
+          <table class="m3-table">
+            <thead>
+              <tr>
+                <th style="width: 36px;">★</th>
+                <th>Entreprise & Poste</th>
+                <th>Contrat</th>
+                <th>Statut</th>
+                <th>Lieu & Mode</th>
+                <th>Date d’envoi</th>
+                <th>Prochaine relance</th>
+                <th>CV envoyé</th>
+                <th style="text-align: right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="applications-table-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 4: FOLLOW-UPS & INTERVIEWS ==================== -->
+      <section class="m3-view-section" id="view-followups">
+        <div class="m3-dashboard-grid">
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">schedule_send</span>
+                Candidatures à relancer
+              </h2>
+            </div>
+            <div class="m3-action-list" id="followups-full-list"></div>
+          </div>
+
+          <div class="m3-card">
+            <div class="m3-card-header">
+              <h2 class="m3-card-title">
+                <span class="material-symbols-rounded">event_available</span>
+                Agenda des entretiens programmés
+              </h2>
+            </div>
+            <div class="m3-action-list" id="interviews-full-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== VIEW 5: DOCUMENTS (CV & LM) ==================== -->
+      <section class="m3-view-section" id="view-documents">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);">
+            Centralisez vos versions de CV et lettres de motivation pour suivre lesquelles génèrent le plus d’entretiens.
+          </p>
+          <button class="m3-btn m3-btn-filled" id="btn-new-document">
+            <span class="material-symbols-rounded">upload_file</span>
+            <span>Ajouter un CV / Document</span>
+          </button>
+        </div>
+        <div class="m3-docs-grid" id="documents-grid"></div>
+      </section>
+
+      <!-- ==================== VIEW 6: AI AGENT STUDIO ==================== -->
+      <section class="m3-view-section" id="view-agent">
+        <div class="m3-ai-studio">
+          <!-- Left: Main Conversational Copilot Studio -->
+          <div class="m3-ai-chat-surface">
+            <!-- Top Studio Bar -->
+            <div class="m3-ai-studio-bar">
+              <div class="m3-ai-brand-cluster">
+                <div class="m3-ai-orb">
+                  <span class="material-symbols-rounded filled">auto_awesome</span>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 class="m3-ai-studio-title">Alt-Tracker Intelligence</h2>
+                    <button type="button" class="m3-ai-model-pill" id="btn-open-ai-settings" title="Configurer le modèle OpenAI / Groq / Mistral / Ollama">
+                      <span class="m3-ai-status-dot" id="ai-status-dot"></span>
+                      <span id="ai-provider-badge">Copilote Autonome · Actif</span>
+                      <span class="material-symbols-rounded" style="font-size: 15px;">tune</span>
+                    </button>
+                  </div>
+                  <p class="m3-ai-studio-sub">
+                    Agent connecté en temps réel à votre base SQLite, vos relances et votre générateur de lettres PDF
+                  </p>
+                </div>
+              </div>
+
+              <div class="m3-ai-header-controls">
+                <select class="m3-select" id="ai-focus-app" aria-label="Candidature ciblée">
+                  <option value="">Toutes mes candidatures (Global)</option>
+                </select>
+                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-ai-settings-secondary" title="Paramètres OpenAI & Profil">
+                  <span class="material-symbols-rounded" style="font-size: 17px;">settings</span>
+                  <span>Modèle & Profil</span>
+                </button>
+                <button type="button" class="m3-icon-btn" id="btn-ai-clear-chat" title="Nouvelle conversation">
+                  <span class="material-symbols-rounded">restart_alt</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Conversational Stream (Hero Welcome + Messages) -->
+            <div class="m3-ai-messages" id="ai-chat-messages" aria-live="polite">
+              <div class="m3-ai-hero">
+                <div class="m3-ai-hero-badge">
+                  <span class="material-symbols-rounded filled">auto_awesome</span>
+                  <span>Material You AI Copilot · Function Calling SQLite</span>
+                </div>
+                <h3 class="m3-ai-hero-heading">Sur quelle candidature travaille-t-on aujourd’hui ?</h3>
+                <p class="m3-ai-hero-desc">
+                  Sélectionnez une action rapide ci-dessous ou posez votre question en langage naturel : je peux analyser votre pipeline, rédiger vos relances, générer une lettre de motivation en PDF ou créer une candidature.
+                </p>
+
+                <div class="m3-ai-bento-prompts">
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Analyse mon pipeline de candidatures, mes statistiques et dis-moi quelles relances sont prioritaires aujourd'hui.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">monitoring</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Audit & Priorités du Pipeline</strong>
+                      <span>Analyse vos taux de retour, CV performants et relances urgentes du jour</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Rédige un email de relance percutant et un message LinkedIn pour la candidature sélectionnée (ou la plus urgente).">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">forward_to_inbox</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Email & LinkedIn de Relance</strong>
+                      <span>Rédige un mail recruteur et une approche LinkedIn prêts à envoyer</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Génère une lettre de motivation sur-mesure pour la candidature sélectionnée et enregistre-la automatiquement en PDF dans mes documents CV & LM.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">picture_as_pdf</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Lettre de Motivation PDF</strong>
+                      <span>Rédige et génère automatiquement un document PDF dans votre bibliothèque</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Prépare-moi à l'entretien (questions techniques, questions RH, pitch et questions à poser) pour la candidature sélectionnée.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">psychology</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Coach d’Entretien Tech & RH</strong>
+                      <span>Questions probables, pitch personnalisé et questions stratégiques à poser</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating M3 Pill Dock Composer -->
+            <div class="m3-ai-dock">
+              <div class="m3-ai-quick-bar" id="ai-quick-prompts">
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Analyse mon pipeline de candidatures, mes statistiques et dis-moi quelles relances sont prioritaires aujourd'hui.">
+                  <span class="material-symbols-rounded">monitoring</span>
+                  <span>Audit pipeline</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Rédige un email de relance percutant et un message LinkedIn pour la candidature sélectionnée (ou la plus urgente).">
+                  <span class="material-symbols-rounded">forward_to_inbox</span>
+                  <span>Rédiger une relance</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Génère une lettre de motivation sur-mesure pour la candidature sélectionnée et enregistre-la automatiquement en PDF dans mes documents CV & LM.">
+                  <span class="material-symbols-rounded">picture_as_pdf</span>
+                  <span>Générer Lettre PDF</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Prépare-moi à l'entretien (questions techniques, questions RH, pitch et questions à poser) pour la candidature sélectionnée.">
+                  <span class="material-symbols-rounded">psychology</span>
+                  <span>Simuler entretien</span>
+                </button>
+              </div>
+
+              <form class="m3-ai-composer-pill" id="ai-chat-form">
+                <span class="material-symbols-rounded m3-ai-composer-icon">auto_awesome</span>
+                <input
+                  type="text"
+                  class="m3-ai-composer-input"
+                  id="ai-chat-input"
+                  placeholder="Posez une question à votre copilote ou écrivez « Ajoute une alternance chez Airbus à Toulouse »..."
+                  autocomplete="off"
+                  required
+                />
+                <button type="submit" class="m3-ai-send-btn" id="btn-ai-send" title="Envoyer au Copilote IA">
+                  <span>Envoyer</span>
+                  <span class="material-symbols-rounded" style="font-size: 18px;">arrow_upward</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Live Focus Context + Smart Job Offer Studio -->
+          <div class="m3-ai-side-stack">
+            <!-- Active Application Focus Card -->
+            <div class="m3-ai-side-card" id="ai-context-card">
+              <div class="m3-ai-side-header">
+                <div class="m3-ai-side-icon">
+                  <span class="material-symbols-rounded">target</span>
+                </div>
+                <div>
+                  <h3 class="m3-ai-side-title">Candidature Ciblée</h3>
+                  <p class="m3-ai-side-sub">Actions IA rapides en 1 clic</p>
+                </div>
+              </div>
+              <div id="ai-context-body" class="m3-ai-context-body"></div>
+            </div>
+
+            <!-- Smart Job Parser Studio Card -->
+            <div class="m3-ai-side-card m3-ai-extractor-card">
+              <div class="m3-ai-side-header">
+                <div class="m3-ai-side-icon tertiary">
+                  <span class="material-symbols-rounded">content_paste_go</span>
+                </div>
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <h3 class="m3-ai-side-title">Smart Job Parser IA</h3>
+                    <button type="button" class="m3-ai-sample-pill" id="btn-ai-sample-offer">
+                      <span class="material-symbols-rounded" style="font-size: 14px;">science</span>
+                      <span>Tester un exemple</span>
+                    </button>
+                  </div>
+                  <p class="m3-ai-side-sub">Transformez une offre brute en fiche structurée</p>
+                </div>
+              </div>
+
+              <div class="m3-ai-extractor-box">
+                <textarea
+                  id="ai-extract-textarea"
+                  class="m3-ai-extractor-textarea"
+                  placeholder="Collez ici le texte d'une annonce LinkedIn, Welcome to the Jungle ou Indeed... L'IA détecte automatiquement l'entreprise, le poste, le contrat, la ville, le salaire et le rythme."
+                ></textarea>
+                <div class="m3-ai-extractor-tags">
+                  <span><span class="material-symbols-rounded">apartment</span> Entreprise</span>
+                  <span><span class="material-symbols-rounded">work</span> Contrat</span>
+                  <span><span class="material-symbols-rounded">location_on</span> Ville & Mode</span>
+                  <span><span class="material-symbols-rounded">payments</span> Salaire & Rythme</span>
+                </div>
+              </div>
+
+              <div class="m3-ai-extractor-actions">
+                <button type="button" class="m3-btn m3-btn-tonal" id="btn-ai-extract-prefill" style="flex: 1; justify-content: center;">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">edit_square</span>
+                  <span>Extraire & Vérifier</span>
+                </button>
+                <button type="button" class="m3-btn m3-btn-filled" id="btn-ai-extract-create" style="flex: 1.15; justify-content: center;">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">bolt</span>
+                  <span>Créer en 1 clic</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== M3 Side Sheet (Application Details) ==================== -->
+  <div class="m3-scrim" id="side-sheet-scrim"></div>
+  <aside class="m3-side-sheet" id="detail-side-sheet" aria-label="Détails de la candidature">
+    <div class="m3-side-sheet-header">
+      <div>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 6px;" id="sheet-badges"></div>
+        <h2 style="font-size: 20px; font-weight: 800;" id="sheet-company">Entreprise</h2>
+        <p style="font-size: 14px; color: var(--md-sys-color-on-surface-variant);" id="sheet-role">Poste</p>
+      </div>
+      <div style="display: flex; gap: 6px;">
+        <button class="m3-icon-btn" id="sheet-btn-edit" title="Modifier la candidature">
+          <span class="material-symbols-rounded">edit</span>
+        </button>
+        <button class="m3-icon-btn" id="sheet-btn-delete" title="Supprimer la candidature">
+          <span class="material-symbols-rounded">delete</span>
+        </button>
+        <button class="m3-icon-btn" id="sheet-btn-close" title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="m3-side-sheet-body">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="sheet-quick-actions"></div>
+
+      <div class="m3-detail-grid" id="sheet-info-grid"></div>
+
+      <div class="m3-detail-box" id="sheet-contact-box"></div>
+
+      <div class="m3-detail-box">
+        <span class="m3-detail-label">Notes & Préparation d’entretien</span>
+        <p style="font-size: 13.5px; white-space: pre-wrap; line-height: 1.5; margin-top: 4px;" id="sheet-notes"></p>
+      </div>
+
+      <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span class="m3-detail-label">Historique & Journal de suivi</span>
+        </div>
+
+        <form id="form-add-event" style="display: flex; gap: 8px; margin-bottom: 16px;">
+          <input
+            type="text"
+            class="m3-input"
+            id="event-title-input"
+            placeholder="Ajouter une étape (ex: Appel RH, Relance LinkedIn...)"
+            required
+          />
+          <button type="submit" class="m3-btn m3-btn-tonal">Ajouter</button>
+        </form>
+
+        <div class="m3-timeline" id="sheet-timeline"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== M3 Dialog: Create / Edit Application ==================== -->
+  <div class="m3-dialog-backdrop" id="app-dialog-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" aria-labelledby="app-dialog-title">
+      <div class="m3-dialog-header">
+        <h2 class="m3-dialog-title" id="app-dialog-title">Nouvelle candidature</h2>
+        <button class="m3-icon-btn" id="btn-close-app-dialog">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form id="application-form" class="m3-dialog-body">
+        <input type="hidden" id="app-id" />
+
+        <div class="m3-form-section-title">Informations sur l’opportunité</div>
+        <div class="m3-form-grid">
+          <div class="m3-field">
+            <label for="app-company">Entreprise *</label>
+            <input type="text" id="app-company" class="m3-input" placeholder="Ex: Doctolib, Airbus, Capgemini..." required />
+          </div>
+          <div class="m3-field">
+            <label for="app-role">Intitulé du poste *</label>
+            <input type="text" id="app-role" class="m3-input" placeholder="Ex: Développeur Fullstack Node.js (Alternance)" required />
+          </div>
+          <div class="m3-field">
+            <label for="app-type">Type de contrat</label>
+            <select id="app-type" class="m3-input">
+              <option value="alternance">Alternance (Apprentissage / Pro)</option>
+              <option value="job">Job (CDI / CDD)</option>
+              <option value="stage">Stage</option>
+              <option value="freelance">Freelance / Mission</option>
+              <option value="autre">Autre</option>
             </select>
-            <input id="filter-from" type="date" aria-label="À partir du" title="À partir du" />
-            <svg class="ico ico-xs date-sep" aria-hidden="true"><use href="#i-arrow-right"></use></svg>
-            <input id="filter-to" type="date" aria-label="Jusqu'au" title="Jusqu'au" />
           </div>
+          <div class="m3-field">
+            <label for="app-status">Statut actuel</label>
+            <select id="app-status" class="m3-input">
+              <option value="draft">À postuler (Brouillon)</option>
+              <option value="applied" selected>Envoyée</option>
+              <option value="interview">Entretien RH</option>
+              <option value="technical">Test / Entretien Technique</option>
+              <option value="offer">Offre reçue</option>
+              <option value="rejected">Refusée</option>
+            </select>
+          </div>
+          <div class="m3-field">
+            <label for="app-location">Ville / Localisation</label>
+            <input type="text" id="app-location" class="m3-input" placeholder="Ex: Paris, Lyon, Nantes..." />
+          </div>
+          <div class="m3-field">
+            <label for="app-work-mode">Mode de travail</label>
+            <select id="app-work-mode" class="m3-input">
+              <option value="hybrid">Hybride</option>
+              <option value="onsite">Présentiel</option>
+              <option value="remote">Télétravail complet (Remote)</option>
+            </select>
+          </div>
+          <div class="m3-field">
+            <label for="app-salary">Rémunération / Salaire</label>
+            <input type="text" id="app-salary" class="m3-input" placeholder="Ex: 1 650 € / mois ou 42k €" />
+          </div>
+          <div class="m3-field">
+            <label for="app-rhythm">Rythme (Alternance / Durée)</label>
+            <input type="text" id="app-rhythm" class="m3-input" placeholder="Ex: 3 sem. entreprise / 1 sem. école" />
+          </div>
+          <div class="m3-field">
+            <label for="app-priority">Priorité</label>
+            <select id="app-priority" class="m3-input">
+              <option value="high">Haute ★</option>
+              <option value="medium" selected>Moyenne</option>
+              <option value="low">Basse</option>
+            </select>
+          </div>
+          <div class="m3-field">
+            <label for="app-job-url">Lien de l’offre (URL)</label>
+            <input type="url" id="app-job-url" class="m3-input" placeholder="https://..." />
+          </div>
+        </div>
 
-          <select id="sort" aria-label="Trier les candidatures">
-            <option value="date-desc">Plus récentes d'abord</option>
-            <option value="date-asc">Plus anciennes d'abord</option>
-            <option value="demarche">Date de démarche (récentes)</option>
-            <option value="company">Entreprise (A→Z)</option>
-            <option value="status">Statut</option>
-          </select>
+        <div class="m3-form-section-title">Dates clés & Relances</div>
+        <div class="m3-form-grid">
+          <div class="m3-field">
+            <label for="app-applied-date">Date d’envoi</label>
+            <input type="date" id="app-applied-date" class="m3-input" />
+          </div>
+          <div class="m3-field">
+            <label for="app-followup-date">Date de relance prévue</label>
+            <input type="date" id="app-followup-date" class="m3-input" />
+          </div>
+          <div class="m3-field full-width">
+            <label for="app-interview-date">Date & Heure du prochain entretien</label>
+            <input type="datetime-local" id="app-interview-date" class="m3-input" />
+          </div>
+        </div>
 
-          <div class="dropdown">
-            <button id="btn-columns" class="btn" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="columns-menu" aria-label="Choisir les colonnes" title="Choisir les colonnes affichées">
-              <svg class="ico" aria-hidden="true"><use href="#i-columns"></use></svg>
-              <span class="btn-label">Colonnes</span>
-              <svg class="ico ico-xs caret" aria-hidden="true"><use href="#i-chevron-down"></use></svg>
-            </button>
-            <div id="columns-menu" class="dropdown-menu columns-menu hidden"></div>
+        <div class="m3-form-section-title">Contact Recruteur & Documents envoyés</div>
+        <div class="m3-form-grid">
+          <div class="m3-field">
+            <label for="app-contact-name">Nom du contact</label>
+            <input type="text" id="app-contact-name" class="m3-input" placeholder="Ex: Claire Moreau" />
+          </div>
+          <div class="m3-field">
+            <label for="app-contact-role">Fonction du contact</label>
+            <input type="text" id="app-contact-role" class="m3-input" placeholder="Ex: Chargée de recrutement / Tech Lead" />
+          </div>
+          <div class="m3-field">
+            <label for="app-contact-email">Email ou LinkedIn du contact</label>
+            <input type="text" id="app-contact-email" class="m3-input" placeholder="email@entreprise.com ou lien LinkedIn" />
+          </div>
+          <div class="m3-field">
+            <label for="app-contact-phone">Téléphone</label>
+            <input type="text" id="app-contact-phone" class="m3-input" placeholder="06 00 00 00 00" />
+          </div>
+          <div class="m3-field">
+            <label for="app-cv-version">Version du CV utilisée</label>
+            <input type="text" id="app-cv-version" class="m3-input" list="cv-versions-datalist" placeholder="Ex: CV Alternance Fullstack v2.4" />
+            <datalist id="cv-versions-datalist"></datalist>
+          </div>
+          <div class="m3-field">
+            <label for="app-cl-version">Lettre de motivation / Pitch</label>
+            <input type="text" id="app-cl-version" class="m3-input" placeholder="Ex: LM Alternance personnalisée" />
           </div>
         </div>
 
-        <div class="toolbar-row toolbar-row-pills">
-          <div id="filter-status" class="pills" role="group" aria-label="Filtrer par statut"></div>
-          <label class="check-filter" title="Prochaine action atteinte, ou aucun mouvement depuis le délai de l'étape en cours">
-            <input type="checkbox" id="filter-followup" />
-            <svg class="ico ico-xs" aria-hidden="true"><use href="#i-bell"></use></svg>
-            À relancer
-          </label>
-          <button id="reset-filters" class="btn ghost small hidden" type="button">Réinitialiser les filtres</button>
-        </div>
-      </section>
-    </template>
-
-    <!-- Tableau / cartes -->
-    <template id="tpl-table">
-      <section class="card table-card" aria-labelledby="list-title">
-        <div class="table-head">
-          <h2 id="list-title">Toutes les candidatures</h2>
-          <p class="muted small" id="list-count" role="status" aria-live="polite"></p>
+        <div class="m3-field full-width">
+          <label for="app-notes">Notes, stack technique, questions d’entretien</label>
+          <textarea id="app-notes" class="m3-textarea" placeholder="Informations clés sur l'équipe, le processus de recrutement, les retours d'entretien..."></textarea>
         </div>
 
-        <div class="table-wrap tabulator-wrap">
-          <div id="applications-table" aria-label="Tableau des candidatures"></div>
-        </div>
-
-        <div id="skeleton" class="skeleton" aria-hidden="true">
-          <div class="skeleton-row"></div>
-          <div class="skeleton-row"></div>
-          <div class="skeleton-row"></div>
-          <div class="skeleton-row"></div>
-        </div>
-
-        <div id="empty" class="empty hidden">
-          <svg class="ico empty-icon" aria-hidden="true"><use href="#i-inbox"></use></svg>
-          <p class="empty-title" id="empty-title">Aucune candidature pour le moment</p>
-          <p class="muted" id="empty-text">Ajoutez votre première candidature pour démarrer le suivi.</p>
-          <div class="empty-actions">
-            <button id="empty-action" class="btn primary" type="button">
-              <svg class="ico" aria-hidden="true"><use href="#i-plus"></use></svg>
-              <span class="btn-label">Nouvelle candidature</span>
-            </button>
-          </div>
-        </div>
-      </section>
-    </template>
-  </main>
-
-  <!-- Modale ajout / édition -->
-  <div id="modal" class="modal hidden">
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-      <div class="modal-head">
-        <div>
-          <h2 id="modal-title">Nouvelle candidature</h2>
-          <p class="muted small" id="modal-sub">Les champs marqués d'une * sont obligatoires.</p>
-        </div>
-        <button id="modal-close" class="btn icon" type="button" title="Fermer" aria-label="Fermer">
-          <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
-        </button>
-      </div>
-
-      <form id="form" novalidate>
-        <input type="hidden" id="f-id" />
-
-        <div id="form-error" class="form-error hidden" role="alert"></div>
-
-        <fieldset>
-          <legend>Poste</legend>
-          <div class="grid">
-            <label class="col-span-2">Entreprise *
-              <input id="f-company" required placeholder="Ex : Google" autocomplete="organization" />
-              <span id="dup-hint" class="field-hint warn hidden"></span>
-            </label>
-            <label class="col-span-2">Intitulé du poste *
-              <input id="f-position" required placeholder="Ex : Développeur front-end" />
-            </label>
-            <label>Statut
-              <select id="f-status"></select>
-              <span class="field-hint">Changer le statut remet le compteur de relance à zéro.</span>
-            </label>
-            <label>Type de contrat
-              <select id="f-type"></select>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Dates &amp; relance</legend>
-          <div class="grid">
-            <label>Date de démarche
-              <input id="f-dateDemarche" type="date" />
-              <span class="field-hint">Premier envoi. N'entre pas dans le calcul des relances.</span>
-            </label>
-            <label>Prochaine action / relance
-              <input id="f-nextAction" type="date" />
-              <span class="field-hint">Avec une date : la fiche passe « à faire » le jour venu (et seulement là). Sans date : l'app détecte toute seule les fiches dormantes, 14 j après « Postulé », 10 j après « Relance envoyée », 7 j après « Entretien », à compter du dernier changement de statut.</span>
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Lieu, source &amp; rémunération</legend>
-          <div class="grid">
-            <label>Code postal
-              <input id="f-postalCode" inputmode="numeric" maxlength="10" placeholder="Ex : 75011" />
-            </label>
-            <label>Lieu
-              <input id="f-location" placeholder="Ex : Paris / Télétravail" />
-            </label>
-            <label>Source
-              <input id="f-source" placeholder="Ex : LinkedIn, HelloWork…" />
-            </label>
-            <label>Salaire
-              <input id="f-salary" placeholder="Ex : 38-42 k€" />
-            </label>
-            <label class="col-span-2">Lien de l'offre
-              <input id="f-url" type="url" placeholder="https://…" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Contact</legend>
-          <div class="grid">
-            <label>Nom Prénom
-              <input id="f-contactName" placeholder="Ex : Marie Dupont" autocomplete="name" />
-            </label>
-            <label>Téléphone
-              <input id="f-contactPhone" type="tel" placeholder="Ex : 06 12 34 56 78" autocomplete="tel" />
-            </label>
-            <label class="col-span-2">Email
-              <input id="f-contactEmail" type="email" placeholder="Ex : marie.dupont@entreprise.fr" autocomplete="email" />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Notes</legend>
-          <label class="sr-only" for="f-notes">Notes</label>
-          <textarea id="f-notes" rows="3" placeholder="Entretien prévu le 12/09, réponses à préparer, références…"></textarea>
-        </fieldset>
-
-        <div class="modal-actions">
-          <button type="button" id="btn-delete" class="btn danger hidden" title="Supprimer cette candidature">
-            <svg class="ico" aria-hidden="true"><use href="#i-trash"></use></svg>
-            Supprimer
-          </button>
-          <span class="spacer"></span>
-          <button type="button" id="btn-cancel" class="btn">Annuler</button>
-          <button type="submit" id="btn-save" class="btn primary">Enregistrer</button>
+        <div class="m3-dialog-actions">
+          <button type="button" class="m3-btn m3-btn-text" id="btn-cancel-app-dialog">Annuler</button>
+          <button type="submit" class="m3-btn m3-btn-filled">Enregistrer</button>
         </div>
       </form>
-
-      <div id="history-box" class="history-box hidden">
-        <h3><svg class="ico ico-xs" aria-hidden="true"><use href="#i-clock"></use></svg> Historique des statuts</h3>
-        <ol id="history-list"></ol>
-      </div>
     </div>
   </div>
 
-  <!-- Modale import -->
-  <div id="import-modal" class="modal hidden">
-    <div class="modal-content modal-narrow" role="dialog" aria-modal="true" aria-labelledby="import-title">
-      <div class="modal-head">
-        <h2 id="import-title">Importer un fichier JSON</h2>
-        <button id="import-close" class="btn icon" type="button" aria-label="Fermer" title="Fermer">
-          <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
+  <!-- ==================== M3 Dialog: Add / Edit Document (CV / LM) ==================== -->
+  <div class="m3-dialog-backdrop" id="doc-dialog-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(540px, 100%);">
+      <div class="m3-dialog-header">
+        <h2 class="m3-dialog-title" id="doc-dialog-title">Ajouter un CV ou Document</h2>
+        <button class="m3-icon-btn" id="btn-close-doc-dialog">
+          <span class="material-symbols-rounded">close</span>
         </button>
       </div>
-      <p class="muted">Fichier sélectionné : <strong id="import-filename">aucun</strong></p>
-
-      <div class="import-options">
-        <label class="import-option">
-          <input type="radio" name="import-mode" value="merge" checked />
-          <span><strong>Fusionner</strong> — ajoute les nouvelles candidatures et garde l'existant <span class="muted">(recommandé)</span></span>
-        </label>
-        <label class="import-option">
-          <input type="radio" name="import-mode" value="replace" />
-          <span><strong>Remplacer</strong> — efface tout et remplace par le contenu du fichier</span>
-        </label>
-      </div>
-
-      <div class="modal-actions">
-        <span class="spacer"></span>
-        <button type="button" id="import-cancel" class="btn">Annuler</button>
-        <button type="button" id="import-confirm" class="btn primary">Importer</button>
-      </div>
+      <form id="document-form" class="m3-dialog-body">
+        <input type="hidden" id="doc-id" />
+        <div class="m3-field">
+          <label for="doc-label">Nom du document *</label>
+          <input type="text" id="doc-label" class="m3-input" placeholder="Ex: CV Alternance Développeur Fullstack" required />
+        </div>
+        <div class="m3-form-grid">
+          <div class="m3-field">
+            <label for="doc-type">Catégorie</label>
+            <select id="doc-type" class="m3-input">
+              <option value="cv">CV</option>
+              <option value="cover_letter">Lettre de motivation</option>
+              <option value="portfolio">Portfolio / GitHub</option>
+              <option value="other">Autre document</option>
+            </select>
+          </div>
+          <div class="m3-field">
+            <label for="doc-version">Tag de version</label>
+            <input type="text" id="doc-version" class="m3-input" placeholder="v1.0" value="v1.0" />
+          </div>
+        </div>
+        <div class="m3-field">
+          <label for="doc-file">Fichier local (PDF, Image, DOCX — optionnel)</label>
+          <input type="file" id="doc-file" class="m3-input" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" />
+        </div>
+        <div class="m3-field">
+          <label for="doc-url">Lien externe (Canva, Google Drive, Notion, GitHub — optionnel)</label>
+          <input type="url" id="doc-url" class="m3-input" placeholder="https://..." />
+        </div>
+        <div class="m3-field">
+          <label for="doc-notes">Notes sur cette version</label>
+          <textarea id="doc-notes" class="m3-textarea" placeholder="Points mis en avant dans cette version..."></textarea>
+        </div>
+        <div class="m3-dialog-actions">
+          <button type="button" class="m3-btn m3-btn-text" id="btn-cancel-doc-dialog">Annuler</button>
+          <button type="submit" class="m3-btn m3-btn-filled" id="btn-submit-doc-dialog">Enregistrer</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Page de garde du PDF -->
-  <div id="cover-modal" class="modal hidden">
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="cover-title">
-      <div class="modal-head">
-        <div>
-          <h2 id="cover-title">Page de garde du PDF</h2>
-          <p class="muted small">Elle devient la page 1 de l'export PDF ; le tableau commence à la page 2.</p>
+  <!-- ==================== M3 Dialog: In-Page Document Viewer ==================== -->
+  <div class="m3-dialog-backdrop" id="doc-preview-backdrop">
+    <div class="m3-dialog m3-doc-viewer-dialog" role="dialog" aria-modal="true" aria-labelledby="doc-preview-title">
+      <div class="m3-dialog-header">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <div class="m3-brand-icon" style="width: 40px; height: 40px; flex-shrink: 0;">
+            <span class="material-symbols-rounded">visibility</span>
+          </div>
+          <div style="min-width: 0;">
+            <h2 class="m3-dialog-title" id="doc-preview-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Aperçu du document</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);" id="doc-preview-subtitle"></p>
+          </div>
         </div>
-        <button id="cover-close" class="btn icon" type="button" title="Fermer" aria-label="Fermer">
-          <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
-        </button>
-      </div>
-
-      <form id="cover-form" novalidate>
-        <label class="check-line">
-          <input type="checkbox" id="cover-enabled" />
-          <span>Ajouter une page de garde au PDF</span>
-        </label>
-
-        <div class="grid">
-          <label class="col-span-2">Titre
-            <input id="cover-title-input" maxlength="120" placeholder="Ex : Candidatures 2026 — Matteo Dupont" />
-            <span class="field-hint">Laissez vide pour « Suivi de candidatures ».</span>
-          </label>
-          <label class="col-span-2">Sous-titre
-            <input id="cover-subtitle-input" maxlength="200" placeholder="Ex : Recherche d'alternance — développement front-end" />
-          </label>
-        </div>
-
-        <label>Texte libre
-          <textarea id="cover-text-input" rows="8" maxlength="4000" placeholder="Objectif, contexte, coordonnées, période de recherche…"></textarea>
-          <span class="field-hint">Les retours à la ligne sont conservés. <span id="cover-text-count" class="muted"></span></span>
-        </label>
-
-        <label class="check-line">
-          <input type="checkbox" id="cover-stats" checked />
-          <span>Afficher les indicateurs (totaux, entretiens…) sur la page de garde</span>
-        </label>
-
-        <p class="field-hint" id="cover-hint">L'aperçu utilise la dernière version enregistrée.</p>
-
-        <div class="modal-actions">
-          <a class="btn" id="cover-preview" href="/api/export/pdf" target="_blank" rel="noopener" title="Ouvrir le PDF dans un nouvel onglet">
-            <svg class="ico" aria-hidden="true"><use href="#i-eye"></use></svg>
-            Aperçu PDF
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <a href="#" target="_blank" rel="noopener" class="m3-btn m3-btn-tonal m3-btn-sm" id="doc-preview-newtab">
+            <span class="material-symbols-rounded" style="font-size: 17px;">open_in_new</span>
+            <span>Nouvel onglet</span>
           </a>
-          <span class="spacer"></span>
-          <button type="button" id="cover-cancel" class="btn">Annuler</button>
-          <button type="submit" id="cover-save" class="btn primary">Enregistrer</button>
+          <a href="#" download class="m3-btn m3-btn-outlined m3-btn-sm" id="doc-preview-download">
+            <span class="material-symbols-rounded" style="font-size: 17px;">download</span>
+            <span>Télécharger</span>
+          </a>
+          <button class="m3-icon-btn" id="btn-close-doc-preview" title="Fermer l’aperçu">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="m3-doc-viewer-body" id="doc-preview-body"></div>
+    </div>
+  </div>
+
+  <!-- ==================== M3 Dialog: Import / Export ==================== -->
+  <div class="m3-dialog-backdrop" id="import-export-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(540px, 100%);">
+      <div class="m3-dialog-header">
+        <h2 class="m3-dialog-title">Importer & Exporter vos données</h2>
+        <button class="m3-icon-btn" id="btn-close-import-export">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      <div class="m3-dialog-body">
+        <div class="m3-form-section-title">Exporter mes candidatures</div>
+        <p style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
+          Téléchargez l’intégralité de vos candidatures pour les ouvrir dans Excel/Google Sheets (CSV) ou créer une sauvegarde complète (JSON).
+        </p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+          <a href="/api/export/csv" class="m3-btn m3-btn-filled" download>
+            <span class="material-symbols-rounded">table_view</span>
+            <span>Exporter en CSV</span>
+          </a>
+          <a href="/api/export/json" class="m3-btn m3-btn-tonal" download>
+            <span class="material-symbols-rounded">data_object</span>
+            <span>Exporter en JSON</span>
+          </a>
+        </div>
+
+        <hr style="border: none; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 8px 0;" />
+
+        <div class="m3-form-section-title">Importer un fichier (CSV ou JSON)</div>
+        <div class="m3-field">
+          <label for="import-file-input">Sélectionnez un fichier .csv ou .json</label>
+          <input type="file" id="import-file-input" class="m3-input" accept=".csv,.json" />
+        </div>
+        <button class="m3-btn m3-btn-outlined" id="btn-run-import" style="align-self: flex-start;">
+          <span class="material-symbols-rounded">upload</span>
+          <span>Lancer l’importation</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== M3 Dialog: AI Model & Candidate Profile Settings ==================== -->
+  <div class="m3-dialog-backdrop" id="ai-settings-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(620px, 100%);">
+      <div class="m3-dialog-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="m3-ai-orb" style="width: 38px; height: 38px;">
+            <span class="material-symbols-rounded filled" style="font-size: 20px;">tune</span>
+          </div>
+          <div>
+            <h2 class="m3-dialog-title">Modèle IA & Profil Candidat</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);">
+              Compatible OpenAI, Groq, Mistral, OpenRouter, Gemini & Ollama local
+            </p>
+          </div>
+        </div>
+        <button class="m3-icon-btn" id="btn-close-ai-settings" title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form id="ai-settings-form" class="m3-dialog-body">
+        <div class="m3-form-section-title">Fournisseur OpenAI Compatible (Pré-réglages rapides)</div>
+        <div class="m3-ai-preset-bar" id="ai-provider-presets">
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.openai.com/v1" data-model="gpt-4o-mini">
+            <span class="material-symbols-rounded" style="font-size: 15px;">bolt</span> OpenAI
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.groq.com/openai/v1" data-model="llama-3.3-70b-versatile">
+            <span class="material-symbols-rounded" style="font-size: 15px;">speed</span> Groq (Ultra-rapide)
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.mistral.ai/v1" data-model="mistral-small-latest">
+            <span class="material-symbols-rounded" style="font-size: 15px;">air</span> Mistral AI
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://openrouter.ai/api/v1" data-model="openai/gpt-4o-mini">
+            <span class="material-symbols-rounded" style="font-size: 15px;">hub</span> OpenRouter
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="http://localhost:11434/v1" data-model="llama3.2">
+            <span class="material-symbols-rounded" style="font-size: 15px;">terminal</span> Ollama (Local)
+          </button>
+        </div>
+
+        <div class="m3-form-grid">
+          <div class="m3-field full-width">
+            <label for="ai-base-url">Base URL de l’API (`/v1`)</label>
+            <input type="url" id="ai-base-url" class="m3-input" placeholder="https://api.openai.com/v1" required />
+          </div>
+          <div class="m3-field">
+            <label for="ai-api-key">Clé API (Bearer Token)</label>
+            <input type="password" id="ai-api-key" class="m3-input" placeholder="sk-... (vide = mode autonome)" autocomplete="off" />
+          </div>
+          <div class="m3-field">
+            <label for="ai-model">Modèle cible</label>
+            <input type="text" id="ai-model" class="m3-input" placeholder="gpt-4o-mini" required />
+          </div>
+        </div>
+
+        <div class="m3-form-section-title" style="margin-top: 6px;">Personnalisation Candidat (Relances & Lettres PDF)</div>
+        <div class="m3-field">
+          <label for="ai-candidate-name">Votre Prénom & Nom (signature automatique)</label>
+          <input type="text" id="ai-candidate-name" class="m3-input" placeholder="Matteo" />
+        </div>
+        <div class="m3-field">
+          <label for="ai-candidate-profile">Votre profil, école, stack technique & points forts</label>
+          <textarea id="ai-candidate-profile" class="m3-textarea" style="min-height: 82px;" placeholder="Ex: Développeur Fullstack JavaScript / Node.js, orienté architecture web moderne, SQLite/SQL et interfaces Google Material Design 3."></textarea>
+        </div>
+
+        <div class="m3-dialog-actions" style="padding: 12px 0 0; margin-top: 4px;">
+          <button type="button" class="m3-btn m3-btn-text" id="btn-ai-clear-key">Mode autonome (sans clé)</button>
+          <button type="submit" class="m3-btn m3-btn-filled">
+            <span class="material-symbols-rounded" style="font-size: 18px;">check</span>
+            <span>Enregistrer la configuration</span>
+          </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- Sauvegardes de la base (instantanés pris au démarrage et avant toute opération destructrice) -->
-  <div id="backups-modal" class="modal hidden">
-    <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="backups-title">
-      <div class="modal-head">
-        <div>
-          <h2 id="backups-title">Sauvegardes de la base</h2>
-          <p class="muted small" id="backups-note">Chargement…</p>
-        </div>
-        <button id="backups-close" class="btn icon" type="button" title="Fermer" aria-label="Fermer">
-          <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
-        </button>
-      </div>
-      <ul class="backups-list" id="backups-list"></ul>
-      <div class="modal-actions">
-        <span class="spacer"></span>
-        <button type="button" id="backups-cancel" class="btn">Fermer</button>
-        <button type="button" id="backups-create" class="btn primary">Créer un instantané</button>
-      </div>
-    </div>
-  </div>
+  <!-- M3 Snackbar -->
+  <div class="m3-snackbar" id="m3-snackbar" role="status" aria-live="polite"></div>
 
-  <!-- Confirmation -->
-  <div id="confirm-modal" class="modal hidden">
-    <div class="modal-content modal-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text">
-      <div class="modal-head">
-        <h2 id="confirm-title">Confirmer</h2>
-        <button id="confirm-close" class="btn icon" type="button" aria-label="Fermer" title="Fermer">
-          <svg class="ico" aria-hidden="true"><use href="#i-x"></use></svg>
-        </button>
-      </div>
-      <p id="confirm-text" class="confirm-text"></p>
-      <div class="modal-actions">
-        <span class="spacer"></span>
-        <button type="button" id="confirm-cancel" class="btn">Annuler</button>
-        <button type="button" id="confirm-ok" class="btn primary">Confirmer</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="toasts" class="toasts" aria-live="polite" aria-relevant="additions"></div>
-
-  <!-- Règles métier partagées avec le serveur (lib/rules.js), graphiques et tableau :
-       des scripts classiques, chargés avant le module d'entrée qui les utilise. -->
-  <script src="/rules.js"></script>
-  <script src="/chart.js"></script>
-  <script src="/tabulator.js"></script>
-  <!-- app.js est un module ES : il importe les écrans qui vivent dans /js/.
-       Aucun outil de compilation, le serveur statique les sert tels quels. -->
-  <script type="module" src="/app.js"></script>
+  <script src="/js/app.js"></script>
 </body>
 </html>
