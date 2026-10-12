@@ -239,6 +239,21 @@
 
       <!-- ==================== VIEW 3: LIST / TABLE ==================== -->
       <section class="m3-view-section" id="view-list">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px;">
+          <p style="font-size: 13.5px; color: var(--md-sys-color-on-surface-variant);">
+            Exportez à tout moment votre liste d’envois filtrée au format PDF officiel (paysage A4).
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="openPdfListPreview()">
+              <span class="material-symbols-rounded" style="font-size: 17px;">visibility</span>
+              <span>Aperçu PDF de la liste</span>
+            </button>
+            <button type="button" class="m3-btn m3-btn-filled m3-btn-sm" onclick="downloadPdfList()">
+              <span class="material-symbols-rounded" style="font-size: 17px;">picture_as_pdf</span>
+              <span>Exporter la liste en PDF</span>
+            </button>
+          </div>
+        </div>
         <div class="m3-table-container">
           <table class="m3-table">
             <thead>
@@ -261,6 +276,12 @@
 
       <!-- ==================== VIEW 4: FOLLOW-UPS & INTERVIEWS ==================== -->
       <section class="m3-view-section" id="view-followups">
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 14px;">
+          <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="openPdfListPreview()">
+            <span class="material-symbols-rounded" style="font-size: 17px;">picture_as_pdf</span>
+            <span>Exporter le rapport d’envois & relances (PDF)</span>
+          </button>
+        </div>
         <div class="m3-dashboard-grid">
           <div class="m3-card">
             <div class="m3-card-header">
@@ -319,7 +340,7 @@
                     </button>
                   </div>
                   <p class="m3-ai-studio-sub">
-                    Agent connecté en temps réel à votre base SQLite, vos relances et votre générateur de lettres PDF
+                    Agent connecté en temps réel à votre base SQLite, vos relances et au protocole MCP
                   </p>
                 </div>
               </div>
@@ -328,9 +349,13 @@
                 <select class="m3-select" id="ai-focus-app" aria-label="Candidature ciblée">
                   <option value="">Toutes mes candidatures (Global)</option>
                 </select>
-                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-ai-settings-secondary" title="Paramètres OpenAI & Profil">
+                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-mcp-hub" title="Connecteurs Model Context Protocol (MCP)">
+                  <span class="material-symbols-rounded" style="font-size: 17px;">hub</span>
+                  <span id="mcp-hub-btn-label">MCP (7 Tools)</span>
+                </button>
+                <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" id="btn-open-ai-settings-secondary" title="Paramètres OpenAI & Profil">
                   <span class="material-symbols-rounded" style="font-size: 17px;">settings</span>
-                  <span>Modèle & Profil</span>
+                  <span>Modèle IA</span>
                 </button>
                 <button type="button" class="m3-icon-btn" id="btn-ai-clear-chat" title="Nouvelle conversation">
                   <span class="material-symbols-rounded">restart_alt</span>
@@ -493,6 +518,32 @@
                 <button type="button" class="m3-btn m3-btn-filled" id="btn-ai-extract-create" style="flex: 1.15; justify-content: center;">
                   <span class="material-symbols-rounded" style="font-size: 18px;">bolt</span>
                   <span>Créer en 1 clic</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Model Context Protocol (MCP) Hub Card -->
+            <div class="m3-ai-side-card">
+              <div class="m3-ai-side-header">
+                <div class="m3-ai-side-icon">
+                  <span class="material-symbols-rounded">hub</span>
+                </div>
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <h3 class="m3-ai-side-title">Connecteur MCP (Agents IA)</h3>
+                    <span class="m3-badge m3-status-offer" id="mcp-card-status-badge">Actif · v2024-11-05</span>
+                  </div>
+                  <p class="m3-ai-side-sub">Exposez Alt-Tracker à Claude, Cursor, Antigravity ou connectez un serveur MCP</p>
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-mcp-hub-card" style="flex: 1; justify-content: center;">
+                  <span class="material-symbols-rounded" style="font-size: 16px;">electrical_services</span>
+                  <span>Gérer les Connecteurs & Tools MCP</span>
+                </button>
+                <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" onclick="openPdfListPreview()" title="Aperçu PDF de la liste des envois">
+                  <span class="material-symbols-rounded" style="font-size: 16px;">picture_as_pdf</span>
+                  <span>PDF Envois</span>
                 </button>
               </div>
             </div>
@@ -776,7 +827,7 @@
 
   <!-- ==================== M3 Dialog: Import / Export ==================== -->
   <div class="m3-dialog-backdrop" id="import-export-backdrop">
-    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(540px, 100%);">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(580px, 100%);">
       <div class="m3-dialog-header">
         <h2 class="m3-dialog-title">Importer & Exporter vos données</h2>
         <button class="m3-icon-btn" id="btn-close-import-export">
@@ -784,18 +835,26 @@
         </button>
       </div>
       <div class="m3-dialog-body">
-        <div class="m3-form-section-title">Exporter mes candidatures</div>
+        <div class="m3-form-section-title">Exporter la liste des envois & candidatures</div>
         <p style="font-size: 13px; color: var(--md-sys-color-on-surface-variant);">
-          Téléchargez l’intégralité de vos candidatures pour les ouvrir dans Excel/Google Sheets (CSV) ou créer une sauvegarde complète (JSON).
+          Générez un rapport officiel en <strong>PDF (Paysage A4)</strong>, un tableau Excel/Sheets (CSV) ou une sauvegarde complète (JSON).
         </p>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-          <a href="/api/export/csv" class="m3-btn m3-btn-filled" download>
-            <span class="material-symbols-rounded">table_view</span>
-            <span>Exporter en CSV</span>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <a href="/api/export/pdf" class="m3-btn m3-btn-filled" download="alt-tracker-liste-envois.pdf">
+            <span class="material-symbols-rounded">picture_as_pdf</span>
+            <span>Exporter la liste en PDF</span>
           </a>
-          <a href="/api/export/json" class="m3-btn m3-btn-tonal" download>
+          <button type="button" class="m3-btn m3-btn-tonal" id="btn-export-pdf-preview">
+            <span class="material-symbols-rounded">visibility</span>
+            <span>Aperçu PDF dans la page</span>
+          </button>
+          <a href="/api/export/csv" class="m3-btn m3-btn-tonal" download>
+            <span class="material-symbols-rounded">table_view</span>
+            <span>CSV</span>
+          </a>
+          <a href="/api/export/json" class="m3-btn m3-btn-outlined" download>
             <span class="material-symbols-rounded">data_object</span>
-            <span>Exporter en JSON</span>
+            <span>JSON</span>
           </a>
         </div>
 
@@ -887,6 +946,75 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ==================== M3 Dialog: Model Context Protocol (MCP) Hub ==================== -->
+  <div class="m3-dialog-backdrop" id="mcp-dialog-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(760px, 100%);">
+      <div class="m3-dialog-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="m3-ai-orb" style="width: 40px; height: 40px;">
+            <span class="material-symbols-rounded filled" style="font-size: 20px;">hub</span>
+          </div>
+          <div>
+            <h2 class="m3-dialog-title">Connecteur Model Context Protocol (MCP)</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);">
+              Serveur MCP natif (`stdio` & `HTTP JSON-RPC 2.0`) + Gestionnaire de serveurs MCP externes
+            </p>
+          </div>
+        </div>
+        <button class="m3-icon-btn" id="btn-close-mcp-dialog" title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <div class="m3-dialog-body">
+        <!-- Section 1: Alt-Tracker MCP Server for External AI Agents -->
+        <div class="m3-form-section-title">1. Connecter Claude Desktop, Cursor ou Antigravity à Alt-Tracker</div>
+        <div class="m3-detail-box" style="gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div>
+              <strong style="font-size: 13.5px;">Endpoint HTTP JSON-RPC 2.0 :</strong>
+              <code id="mcp-http-endpoint-code" style="margin-left: 6px; padding: 3px 8px; border-radius: 6px; background: var(--md-sys-color-surface-container-highest); font-size: 12px;">http://localhost:3000/api/mcp</code>
+            </div>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-copy-mcp-config">
+                <span class="material-symbols-rounded" style="font-size: 15px;">content_copy</span>
+                <span>Copier config JSON (Claude / Cursor)</span>
+              </button>
+              <button type="button" class="m3-btn m3-btn-filled m3-btn-sm" id="btn-test-local-mcp">
+                <span class="material-symbols-rounded" style="font-size: 15px;">bolt</span>
+                <span>Tester ping MCP</span>
+              </button>
+            </div>
+          </div>
+          <pre id="mcp-config-pre" style="margin: 0; padding: 10px 12px; border-radius: 10px; background: var(--md-sys-color-surface-container-lowest); border: 1px solid var(--md-sys-color-outline-variant); font-size: 11.5px; overflow-x: auto;"></pre>
+        </div>
+
+        <!-- Section 2: Exposed MCP Tools -->
+        <div class="m3-form-section-title">2. Tools & Resources MCP exposés par Alt-Tracker</div>
+        <div id="mcp-tools-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px;"></div>
+
+        <!-- Section 3: External MCP Connectors -->
+        <div class="m3-form-section-title">3. Serveurs MCP connectés à l’Agent IA</div>
+        <div id="mcp-connectors-list" class="m3-action-list"></div>
+
+        <form id="mcp-connector-form" style="display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 8px; align-items: end; padding-top: 6px; border-top: 1px solid var(--md-sys-color-outline-variant);">
+          <div class="m3-field">
+            <label for="mcp-conn-name">Nom du serveur MCP</label>
+            <input type="text" id="mcp-conn-name" class="m3-input" placeholder="Ex: GitHub MCP / Notion MCP" required />
+          </div>
+          <div class="m3-field">
+            <label for="mcp-conn-url">Endpoint JSON-RPC HTTP</label>
+            <input type="url" id="mcp-conn-url" class="m3-input" placeholder="http://localhost:3000/api/mcp" required />
+          </div>
+          <button type="submit" class="m3-btn m3-btn-filled" style="height: 40px;">
+            <span class="material-symbols-rounded" style="font-size: 18px;">add_link</span>
+            <span>Connecter</span>
+          </button>
+        </form>
+      </div>
     </div>
   </div>
 

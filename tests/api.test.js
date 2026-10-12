@@ -267,6 +267,88 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     assert.equal(extractRes.body.created.company, 'Doctolib');
   });
 
+  test('GET /api/export/pdf generates a valid multi-page Landscape A4 PDF report of applications', async () => {
+    const pdfRes = await request('/api/export/pdf');
+    assert.equal(pdfRes.status, 200);
+    assert.equal((pdfRes.headers.get('content-type') || '').includes('application/pdf'), true);
+    assert.equal((pdfRes.headers.get('content-disposition') || '').includes('attachment'), true);
+    assert.equal(pdfRes.body.startsWith('%PDF-1.4'), true);
+    assert.equal(pdfRes.body.includes('Airbus'), true);
+
+    const inlineRes = await request('/api/export/pdf?inline=1&type=alternance');
+    assert.equal(inlineRes.status, 200);
+    assert.equal((inlineRes.headers.get('content-disposition') || '').includes('inline'), true);
+    assert.equal(inlineRes.body.startsWith('%PDF-1.4'), true);
+  });
+
+  test('GET /api/mcp/info and POST /api/mcp implement Model Context Protocol JSON-RPC 2.0', async () => {
+    const infoRes = await request('/api/mcp/info');
+    assert.equal(infoRes.status, 200);
+    assert.equal(infoRes.body.serverInfo.name, 'alt-tracker-mcp-server');
+    assert.equal(Array.isArray(infoRes.body.tools), true);
+    assert.equal(infoRes.body.tools.length >= 7, true);
+
+    const initRpc = await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'initialize',
+        params: { protocolVersion: '2024-11-05' }
+      })
+    });
+    assert.equal(initRpc.status, 200);
+    assert.equal(initRpc.body.result.protocolVersion, '2024-11-05');
+    assert.equal(initRpc.body.result.serverInfo.name, 'alt-tracker-mcp-server');
+
+    const listToolsRpc = await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'tools/list',
+        params: {}
+      })
+    });
+    assert.equal(listToolsRpc.status, 200);
+    assert.equal(Array.isArray(listToolsRpc.body.result.tools), true);
+
+    const callToolRpc = await request('/api/mcp', {
+      method: 'POST',
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 3,
+        method: 'tools/call',
+        params: {
+          name: 'list_applications',
+          arguments: { type: 'alternance' }
+        }
+      })
+    });
+    assert.equal(callToolRpc.status, 200);
+    assert.equal(Boolean(callToolRpc.body.result.isError), false);
+    const parsedContent = JSON.parse(callToolRpc.body.result.content[0].text);
+    assert.equal(parsedContent.count >= 1, true);
+
+    // Connect and test a loopback MCP connector pointing to our running test server
+    const createConn = await request('/api/mcp/connectors', {
+      method: 'POST',
+      body: JSON.stringify({
+        name: 'Test Loopback MCP',
+        endpoint_url: `${baseUrl}/api/mcp`,
+        transport: 'http'
+      })
+    });
+    assert.equal(createConn.status, 201);
+    assert.equal(createConn.body.last_status, 'connected');
+    assert.equal(createConn.body.tools_count >= 7, true);
+
+    const delConn = await request(`/api/mcp/connectors/${createConn.body.id}`, {
+      method: 'DELETE'
+    });
+    assert.equal(delConn.status, 200);
+  });
+
   test('DELETE /api/applications/:id removes application', async () => {
     const delRes = await request(`/api/applications/${createdAppId}`, { method: 'DELETE' });
     assert.equal(delRes.status, 200);
@@ -275,3 +357,4 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     assert.equal(getRes.status, 404);
   });
 });
+

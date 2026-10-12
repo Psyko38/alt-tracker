@@ -3,6 +3,14 @@ const path = require('node:path');
 const fs = require('node:fs');
 const { createDatabase } = require('./db');
 const { runAgentChat, extractJobOffer } = require('./ai-agent');
+const {
+  MCP_PROTOCOL_VERSION,
+  MCP_TOOLS,
+  MCP_RESOURCES,
+  MCP_PROMPTS,
+  handleMcpRequest,
+  probeExternalMcpServer
+} = require('./mcp-server');
 
 function createApp(customDbPath) {
   const app = express();
@@ -237,6 +245,21 @@ function createApp(customDbPath) {
     }
   });
 
+  app.get('/api/export/pdf', (req, res) => {
+    try {
+      const pdfBuffer = store.exportApplicationsPdfBuffer(req.query || {});
+      const isInline = req.query && (req.query.inline === '1' || req.query.inline === 'true');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader(
+        'Content-Disposition',
+        `${isInline ? 'inline' : 'attachment'}; filename="alt-tracker-liste-envois.pdf"`
+      );
+      res.send(pdfBuffer);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/import', (req, res) => {
     try {
       const imported = store.importApplications(req.body || {});
@@ -291,6 +314,129 @@ function createApp(customDbPath) {
       }
       const result = await extractJobOffer(store, text, Boolean(autoCreate));
       res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- Model Context Protocol (MCP) Server & Connectors ---
+  app.get('/api/mcp/info', (req, res) => {
+    try {
+      const host = req.get('host') || 'localhost:3000';
+      const protocol = req.protocol || 'http';
+      const mcpScriptPath = path.resolve(__dirname, 'mcp-server.js');
+      res.json({
+        protocolVersion: MCP_PROTOCOL_VERSION,
+        serverInfo: {
+          name: 'alt-tracker-mcp-server',
+          version: '1.0.0'
+        },
+        httpEndpoint: `${protocol}://${host}/api/mcp`,
+        stdioCommand: `node ${mcpScriptPath}`,
+        claudeDesktopConfig: {
+          mcpServers: {
+            'alt-tracker': {
+              command: 'node',
+              args: [mcpScriptPath]
+            }
+          }
+        },
+        tools: MCP_TOOLS,
+        resources: MCP_RESOURCES,
+        prompts: MCP_PROMPTS,
+        connectors: store.listMcpConnectors()
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/mcp', (req, res) => {
+    try {
+      const response = handleMcpRequest(store, req.body || {});
+      if (!response) {
+        return res.status(204).end();
+      }
+      res.json(response);
+    } catch (err) {
+      res.status(500).json({
+        jsonrpc: '2.0',
+        id: null,
+        error: { code: -32603, message: err.message }
+      });
+    }
+  });
+
+  app.get('/api/mcp/connectors', (_req, res) => {
+    try {
+      res.json(store.listMcpConnectors());
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/mcp/connectors', async (req, res) => {
+    try {
+      const { name, endpoint_url, auth_token } = req.body || {};
+      if (!name || !endpoint_url) {
+        return res.status(400).json({ error: 'Le nom et l’URL du connecteur MCP sont requis.' });
+      }
+      let toolsCount = 0;
+      let lastStatus = 'ready';
+      try {
+        const probe = await probeExternalMcpServer(endpoint_url, auth_token, store);
+        toolsCount = (probe.tools || []).length;
+        lastStatus = 'connected';
+      } catch {
+        lastStatus = 'unreachable';
+      }
+      const created = store.createMcpConnector({
+        name,
+        endpoint_url,
+        auth_token,
+        tools_count: toolsCount,
+        last_status: lastStatus
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/mcp/connectors/:id/test', async (req, res) => {
+    try {
+      const connectors = store.listMcpConnectors();
+      const target = connectors.find((c) => Number(c.id) === Number(req.params.id));
+      if (!target) return res.status(404).json({ error: 'Connecteur MCP introuvable' });
+
+      try {
+        const probe = await probeExternalMcpServer(target.endpoint_url, target.auth_token, store);
+        const updated = store.updateMcpConnectorStatus(target.id, 'connected', (probe.tools || []).length);
+        res.json({ connector: updated, tools: probe.tools || [] });
+      } catch (probeErr) {
+        const updated = store.updateMcpConnectorStatus(target.id, 'unreachable', target.tools_count);
+        res.json({ connector: updated, error: probeErr.message });
+      }
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.patch('/api/mcp/connectors/:id', (req, res) => {
+    try {
+      const updated = store.toggleMcpConnector(req.params.id, Boolean(req.body && req.body.enabled));
+      if (!updated) return res.status(404).json({ error: 'Connecteur MCP introuvable' });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.delete('/api/mcp/connectors/:id', (req, res) => {
+    try {
+      const ok = store.deleteMcpConnector(req.params.id);
+      if (!ok) return res.status(404).json({ error: 'Connecteur MCP introuvable' });
+      res.json({ success: true });
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

@@ -1405,14 +1405,212 @@ function closeApplicationDialog() {
 /* ==========================================================================
    AI Agent Studio (Gemini-Inspired Copilot, Bento Hero & Smart Job Parser)
    ========================================================================== */
-function formatAiMarkdown(text) {
-  let safe = escapeHtml(text || '');
-  safe = safe.replace(/```(?:\w+)?\n([\s\S]*?)```/g, (_m, code) => `<pre><code>${code.trim()}</code></pre>`);
-  safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
-  safe = safe.replace(/^###\s+(.+)$/gm, '<strong style="font-size:15px; display:block; margin:8px 0 4px; color:var(--md-sys-color-primary);">$1</strong>');
-  safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  safe = safe.replace(/\n/g, '<br/>');
-  return safe;
+function formatInlineMarkdown(raw) {
+  if (!raw) return '';
+  const codeSpans = [];
+  let text = String(raw).replace(/`([^`\n]+)`/g, (_m, code) => {
+    const idx = codeSpans.length;
+    codeSpans.push(`<code class="m3-md-inline-code">${escapeHtml(code)}</code>`);
+    return `\u0000INLINECODE_${idx}\u0000`;
+  });
+
+  text = escapeHtml(text);
+
+  // Links: [label](https://...)
+  text = text.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+|\/[^\s)]+)\)/g,
+    (_m, label, url) => `<a href="${url}" target="_blank" rel="noopener" class="m3-md-link">${label}</a>`
+  );
+
+  // Bold + Italic: ***text***
+  text = text.replace(/\*\*\*([^*]+)\*\*\*/g, '<strong><em>$1</em></strong>');
+  // Bold: **text** or __text__
+  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+  // Italic: *text* or _text_
+  text = text.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>');
+  text = text.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, '$1<em>$2</em>');
+  // Strikethrough: ~~text~~
+  text = text.replace(/~~([^~]+)~~/g, '<del>$1</del>');
+
+  // Restore inline code spans
+  text = text.replace(/\u0000INLINECODE_(\d+)\u0000/g, (_m, idx) => codeSpans[Number(idx)] || '');
+  return text;
+}
+
+function splitMarkdownTableRow(line) {
+  let trimmed = line.trim();
+  if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+  if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+  return trimmed.split('|').map((cell) => cell.trim());
+}
+
+function isMarkdownTableSeparator(line) {
+  if (!line || !line.includes('|')) return false;
+  const cells = splitMarkdownTableRow(line);
+  if (cells.length === 0) return false;
+  return cells.every((c) => /^:?-{2,}:?$/.test(c));
+}
+
+function formatAiMarkdown(rawText) {
+  if (!rawText) return '';
+
+  // 1. Extract fenced code blocks ```lang ... ```
+  const codeBlocks = [];
+  const normalized = String(rawText)
+    .replace(/\r\n/g, '\n')
+    .replace(/```([a-zA-Z0-9_-]*)\n([\s\S]*?)```/g, (_m, lang, code) => {
+      const idx = codeBlocks.length;
+      const langLabel = (lang || 'texte').toUpperCase();
+      codeBlocks.push(`
+        <div class="m3-md-codeblock">
+          <div class="m3-md-codeblock-header">
+            <span>${escapeHtml(langLabel)}</span>
+          </div>
+          <pre><code>${escapeHtml(code.replace(/\n$/, ''))}</code></pre>
+        </div>
+      `);
+      return `\n\u0000CODEBLOCK_${idx}\u0000\n`;
+    });
+
+  const lines = normalized.split('\n');
+  const htmlBlocks = [];
+  let i = 0;
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Empty line
+    if (!trimmed) {
+      i++;
+      continue;
+    }
+
+    // Code block placeholder
+    const cbMatch = trimmed.match(/^\u0000CODEBLOCK_(\d+)\u0000$/);
+    if (cbMatch) {
+      htmlBlocks.push(codeBlocks[Number(cbMatch[1])] || '');
+      i++;
+      continue;
+    }
+
+    // Horizontal Rule (---, ***, ___)
+    if (/^(?:-{3,}|\*{3,}|_{3,})$/.test(trimmed)) {
+      htmlBlocks.push('<hr class="m3-md-hr" />');
+      i++;
+      continue;
+    }
+
+    // Headings (# to ######)
+    const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (headingMatch) {
+      const level = Math.min(4, headingMatch[1].length);
+      htmlBlocks.push(`<h${level} class="m3-md-h${level}">${formatInlineMarkdown(headingMatch[2])}</h${level}>`);
+      i++;
+      continue;
+    }
+
+    // GFM Table (Header row with | followed by separator row |---|---|)
+    if (line.includes('|') && i + 1 < lines.length && isMarkdownTableSeparator(lines[i + 1])) {
+      const headers = splitMarkdownTableRow(line);
+      const alignments = splitMarkdownTableRow(lines[i + 1]).map((sep) => {
+        if (sep.startsWith(':') && sep.endsWith(':')) return 'center';
+        if (sep.endsWith(':')) return 'right';
+        return 'left';
+      });
+      i += 2;
+
+      const bodyRows = [];
+      while (i < lines.length && lines[i].trim() !== '' && lines[i].includes('|')) {
+        bodyRows.push(splitMarkdownTableRow(lines[i]));
+        i++;
+      }
+
+      const theadHtml = `<thead><tr>${headers
+        .map((h, colIdx) => `<th style="text-align:${alignments[colIdx] || 'left'};">${formatInlineMarkdown(h)}</th>`)
+        .join('')}</tr></thead>`;
+
+      const tbodyHtml = `<tbody>${bodyRows
+        .map(
+          (row) =>
+            `<tr>${headers
+              .map(
+                (_h, colIdx) =>
+                  `<td style="text-align:${alignments[colIdx] || 'left'};">${formatInlineMarkdown(row[colIdx] !== undefined ? row[colIdx] : '')}</td>`
+              )
+              .join('')}</tr>`
+        )
+        .join('')}</tbody>`;
+
+      htmlBlocks.push(`<div class="m3-md-table-wrap"><table class="m3-md-table">${theadHtml}${tbodyHtml}</table></div>`);
+      continue;
+    }
+
+    // Blockquote (> ...)
+    if (/^>\s?/.test(trimmed)) {
+      const quoteLines = [];
+      while (i < lines.length && /^>\s?/.test(lines[i].trim())) {
+        quoteLines.push(formatInlineMarkdown(lines[i].trim().replace(/^>\s?/, '')));
+        i++;
+      }
+      htmlBlocks.push(`<blockquote class="m3-md-blockquote">${quoteLines.join('<br/>')}</blockquote>`);
+      continue;
+    }
+
+    // Unordered List (- ..., * ..., • ...)
+    if (/^[-*•]\s+/.test(trimmed)) {
+      const items = [];
+      while (i < lines.length && /^[-*•]\s+/.test(lines[i].trim())) {
+        let itemText = lines[i].trim().replace(/^[-*•]\s+/, '');
+        if (/^\[x\]\s+/i.test(itemText)) {
+          itemText = `✅ ${itemText.replace(/^\[x\]\s+/i, '')}`;
+        } else if (/^\[\s\]\s+/.test(itemText)) {
+          itemText = `⬜ ${itemText.replace(/^\[\s\]\s+/, '')}`;
+        }
+        items.push(`<li>${formatInlineMarkdown(itemText)}</li>`);
+        i++;
+      }
+      htmlBlocks.push(`<ul class="m3-md-list">${items.join('')}</ul>`);
+      continue;
+    }
+
+    // Ordered List (1. ..., 2) ...)
+    if (/^\d+[.)]\s+/.test(trimmed)) {
+      const items = [];
+      while (i < lines.length && /^\d+[.)]\s+/.test(lines[i].trim())) {
+        const itemText = lines[i].trim().replace(/^\d+[.)]\s+/, '');
+        items.push(`<li>${formatInlineMarkdown(itemText)}</li>`);
+        i++;
+      }
+      htmlBlocks.push(`<ol class="m3-md-list m3-md-ol">${items.join('')}</ol>`);
+      continue;
+    }
+
+    // Standard Paragraph (collect consecutive regular lines)
+    const paraLines = [];
+    while (
+      i < lines.length &&
+      lines[i].trim() !== '' &&
+      !/^\u0000CODEBLOCK_\d+\u0000$/.test(lines[i].trim()) &&
+      !/^(?:-{3,}|\*{3,}|_{3,})$/.test(lines[i].trim()) &&
+      !/^(#{1,6})\s+/.test(lines[i].trim()) &&
+      !/^>\s?/.test(lines[i].trim()) &&
+      !/^[-*•]\s+/.test(lines[i].trim()) &&
+      !/^\d+[.)]\s+/.test(lines[i].trim()) &&
+      !(lines[i].includes('|') && i + 1 < lines.length && isMarkdownTableSeparator(lines[i + 1]))
+    ) {
+      paraLines.push(formatInlineMarkdown(lines[i]));
+      i++;
+    }
+    if (paraLines.length > 0) {
+      htmlBlocks.push(`<p class="m3-md-p">${paraLines.join('<br/>')}</p>`);
+    } else {
+      i++;
+    }
+  }
+
+  return htmlBlocks.join('');
 }
 
 function updateAiProviderBadge() {
@@ -1603,12 +1801,15 @@ function renderAiMessages() {
     const isUser = msg.role === 'user';
     const actionsHtml = (msg.actions && msg.actions.length > 0)
       ? `<div class="m3-ai-actions-row">
-          ${msg.actions.map((act) => `
+          ${msg.actions.map((act) => {
+            const actLabel = typeof act === 'string' ? act : (act && act.label ? act.label : '');
+            return `
             <span class="m3-ai-tool-pill">
               <span class="material-symbols-rounded" style="font-size:14px;">bolt</span>
-              ${escapeHtml(act.label)}
+              <span>${escapeHtml(actLabel)}</span>
             </span>
-          `).join('')}
+          `;
+          }).join('')}
         </div>`
       : '';
 
@@ -1804,6 +2005,189 @@ async function handleExtractJobOffer(autoCreate = false) {
 }
 
 /* ==========================================================================
+   PDF List Export & In-Page PDF Preview + Model Context Protocol (MCP) Hub
+   ========================================================================== */
+function buildFilterQueryParams(extra = {}) {
+  const params = new URLSearchParams();
+  if (state.filters.type && state.filters.type !== 'all') params.set('type', state.filters.type);
+  if (state.filters.status && state.filters.status !== 'all') params.set('status', state.filters.status);
+  if (state.filters.search && state.filters.search.trim()) params.set('search', state.filters.search.trim());
+  if (state.filters.due_followup) params.set('due_followup', 'true');
+  if (state.filters.favorite) params.set('favorite', 'true');
+  if (state.filters.sort) params.set('sort', state.filters.sort);
+  Object.entries(extra).forEach(([k, v]) => {
+    if (v !== undefined && v !== null) params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return qs ? `?${qs}` : '';
+}
+
+function openPdfListPreview() {
+  const ieBackdrop = document.getElementById('import-export-backdrop');
+  if (ieBackdrop) ieBackdrop.classList.remove('open');
+
+  const inlineUrl = `/api/export/pdf${buildFilterQueryParams({ inline: '1' })}`;
+  const downloadUrl = `/api/export/pdf${buildFilterQueryParams()}`;
+
+  const backdrop = document.getElementById('doc-preview-backdrop');
+  const titleEl = document.getElementById('doc-preview-title');
+  const subEl = document.getElementById('doc-preview-subtitle');
+  const bodyEl = document.getElementById('doc-preview-body');
+  const newTabBtn = document.getElementById('doc-preview-newtab');
+  const dlBtn = document.getElementById('doc-preview-download');
+
+  const count = state.applications.length;
+  titleEl.textContent = 'Liste des Envois & Suivi des Candidatures (PDF)';
+  subEl.textContent = `Rapport officiel Paysage A4 · ${count} candidature(s) selon vos filtres actifs`;
+
+  newTabBtn.href = inlineUrl;
+  newTabBtn.style.display = 'inline-flex';
+  dlBtn.href = downloadUrl;
+  dlBtn.setAttribute('download', `alt-tracker-liste-envois-${todayIsoDate()}.pdf`);
+  dlBtn.style.display = 'inline-flex';
+
+  bodyEl.innerHTML = `<iframe src="${inlineUrl}" class="m3-doc-preview-frame" title="Aperçu PDF de la liste des envois"></iframe>`;
+  backdrop.classList.add('open');
+}
+
+function downloadPdfList() {
+  const downloadUrl = `/api/export/pdf${buildFilterQueryParams()}`;
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = `alt-tracker-liste-envois-${todayIsoDate()}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  showSnackbar('Export PDF de la liste des envois généré !');
+}
+
+async function loadMcpHub() {
+  try {
+    const info = await apiFetch('/api/mcp/info');
+    state.mcpInfo = info;
+
+    const endpointEl = document.getElementById('mcp-http-endpoint-code');
+    if (endpointEl && info.httpEndpoint) {
+      endpointEl.textContent = info.httpEndpoint;
+    }
+
+    const configPre = document.getElementById('mcp-config-pre');
+    const cfgObj = info.claudeDesktopConfig || info.clientConfig;
+    if (configPre && cfgObj) {
+      configPre.textContent = JSON.stringify(cfgObj, null, 2);
+    }
+
+    const toolsGrid = document.getElementById('mcp-tools-grid');
+    if (toolsGrid && Array.isArray(info.tools)) {
+      toolsGrid.innerHTML = info.tools.map((t) => `
+        <div class="m3-detail-box" style="justify-content: space-between; gap: 6px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:15px; color:var(--md-sys-color-primary);">terminal</span>
+              <code style="font-size:12px; font-weight:700; color:var(--md-sys-color-on-surface);">${escapeHtml(t.name)}</code>
+            </div>
+            <p style="font-size:11.5px; color:var(--md-sys-color-on-surface-variant); margin-top:4px; line-height:1.4;">
+              ${escapeHtml(t.description)}
+            </p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    const connList = document.getElementById('mcp-connectors-list');
+    if (connList && Array.isArray(info.connectors)) {
+      if (info.connectors.length === 0) {
+        connList.innerHTML = `<div class="m3-empty-state">Aucun connecteur MCP configuré.</div>`;
+      } else {
+        connList.innerHTML = info.connectors.map((c) => {
+          const isOnline = c.last_status === 'connected' || c.last_status === 'online' || c.last_status === 'ready';
+          const statusColor = isOnline ? '#146c2e' : 'var(--md-sys-color-on-surface-variant)';
+          return `
+            <div class="m3-action-item">
+              <div class="m3-action-item-info">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span class="m3-action-item-title">${escapeHtml(c.name)}</span>
+                  <span class="m3-badge" style="background:var(--md-sys-color-secondary-container); color:${statusColor};">
+                    ● ${isOnline ? `Connecté (${c.tools_count || 7} tools)` : escapeHtml(c.last_status || 'Inconnu')}
+                  </span>
+                </div>
+                <span class="m3-action-item-sub">
+                  <code>${escapeHtml(c.endpoint_url || 'stdio')}</code> · JSON-RPC 2.0 MCP
+                </span>
+              </div>
+              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="testMcpConnector(${c.id})">
+                  <span class="material-symbols-rounded" style="font-size:15px;">bolt</span>
+                  <span>Ping MCP</span>
+                </button>
+                <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" onclick="toggleMcpConnectorItem(${c.id}, ${c.enabled ? 'false' : 'true'})">
+                  <span>${c.enabled ? 'Actif' : 'Inactif'}</span>
+                </button>
+                <button type="button" class="m3-icon-btn" onclick="deleteMcpConnectorItem(${c.id})" title="Supprimer">
+                  <span class="material-symbols-rounded" style="font-size:18px;">delete</span>
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+  } catch (err) {
+    console.warn('Erreur chargement MCP Hub :', err.message);
+  }
+}
+
+function openMcpDialog() {
+  loadMcpHub();
+  const backdrop = document.getElementById('mcp-dialog-backdrop');
+  if (backdrop) backdrop.classList.add('open');
+}
+
+function closeMcpDialog() {
+  const backdrop = document.getElementById('mcp-dialog-backdrop');
+  if (backdrop) backdrop.classList.remove('open');
+}
+
+async function testMcpConnector(id) {
+  try {
+    const res = await apiFetch(`/api/mcp/connectors/${id}/test`, { method: 'POST' });
+    if (res.connector && res.connector.last_status === 'connected') {
+      const count = Array.isArray(res.tools) ? res.tools.length : (res.connector.tools_count || 0);
+      showSnackbar(`⚡ Serveur MCP connecté : ${count} tool(s) JSON-RPC 2.0 disponibles !`);
+    } else {
+      showSnackbar(`Échec de connexion MCP : ${res.error || 'Hors ligne'}`);
+    }
+    await loadMcpHub();
+  } catch (err) {
+    showSnackbar(`Erreur test MCP : ${err.message}`);
+  }
+}
+
+async function toggleMcpConnectorItem(id, enabled) {
+  try {
+    await apiFetch(`/api/mcp/connectors/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ enabled })
+    });
+    await loadMcpHub();
+    showSnackbar(enabled ? 'Connecteur MCP activé' : 'Connecteur MCP désactivé');
+  } catch (err) {
+    showSnackbar(`Erreur : ${err.message}`);
+  }
+}
+
+async function deleteMcpConnectorItem(id) {
+  if (!confirm('Supprimer ce connecteur MCP ?')) return;
+  try {
+    await apiFetch(`/api/mcp/connectors/${id}`, { method: 'DELETE' });
+    await loadMcpHub();
+    showSnackbar('Connecteur MCP supprimé');
+  } catch (err) {
+    showSnackbar(`Erreur : ${err.message}`);
+  }
+}
+
+/* ==========================================================================
    Event Listeners Initialization
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
@@ -1812,6 +2196,7 @@ document.addEventListener('DOMContentLoaded', () => {
   enhanceM3FileInputs();
   refreshAllData();
   loadAiSettings();
+  loadMcpHub();
   renderAiMessages();
 
   document.addEventListener('click', () => {
@@ -2045,7 +2430,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Import / Export Modal
+  // Import / Export Modal + PDF Preview button
   const ieBackdrop = document.getElementById('import-export-backdrop');
   const openImportExport = () => {
     const fileInp = document.getElementById('import-file-input');
@@ -2056,6 +2441,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-open-import-export').addEventListener('click', openImportExport);
   document.getElementById('btn-top-import-export').addEventListener('click', openImportExport);
   document.getElementById('btn-close-import-export').addEventListener('click', () => ieBackdrop.classList.remove('open'));
+
+  const btnExportPdfPreview = document.getElementById('btn-export-pdf-preview');
+  if (btnExportPdfPreview) {
+    btnExportPdfPreview.addEventListener('click', openPdfListPreview);
+  }
 
   document.getElementById('btn-run-import').addEventListener('click', async () => {
     const fileInput = document.getElementById('import-file-input');
@@ -2084,6 +2474,81 @@ document.addEventListener('DOMContentLoaded', () => {
       showSnackbar(`Erreur d'importation : ${err.message}`);
     }
   });
+
+  // MCP Hub Modal Event Listeners
+  const mcpBackdrop = document.getElementById('mcp-dialog-backdrop');
+  const btnOpenMcpHub = document.getElementById('btn-open-mcp-hub');
+  if (btnOpenMcpHub) btnOpenMcpHub.addEventListener('click', openMcpDialog);
+  const btnOpenMcpHubCard = document.getElementById('btn-open-mcp-hub-card');
+  if (btnOpenMcpHubCard) btnOpenMcpHubCard.addEventListener('click', openMcpDialog);
+  const btnCloseMcpDialog = document.getElementById('btn-close-mcp-dialog');
+  if (btnCloseMcpDialog) btnCloseMcpDialog.addEventListener('click', closeMcpDialog);
+  if (mcpBackdrop) {
+    mcpBackdrop.addEventListener('click', (e) => {
+      if (e.target === mcpBackdrop) closeMcpDialog();
+    });
+  }
+
+  const btnCopyMcpConfig = document.getElementById('btn-copy-mcp-config');
+  if (btnCopyMcpConfig) {
+    btnCopyMcpConfig.addEventListener('click', async () => {
+      const pre = document.getElementById('mcp-config-pre');
+      if (!pre || !pre.textContent) return;
+      try {
+        await navigator.clipboard.writeText(pre.textContent);
+        showSnackbar('Configuration MCP copiée pour Claude Desktop / Cursor / Antigravity !');
+      } catch {
+        showSnackbar('Impossible de copier automatiquement');
+      }
+    });
+  }
+
+  const btnTestLocalMcp = document.getElementById('btn-test-local-mcp');
+  if (btnTestLocalMcp) {
+    btnTestLocalMcp.addEventListener('click', async () => {
+      try {
+        const rpcRes = await apiFetch('/api/mcp', {
+          method: 'POST',
+          body: JSON.stringify({
+            jsonrpc: '2.0',
+            id: Date.now(),
+            method: 'tools/list',
+            params: {}
+          })
+        });
+        const count = rpcRes && rpcRes.result && Array.isArray(rpcRes.result.tools) ? rpcRes.result.tools.length : 0;
+        showSnackbar(`⚡ Serveur MCP Alt-Tracker opérationnel (${count} tools JSON-RPC 2.0 prêts) !`);
+      } catch (err) {
+        showSnackbar(`Erreur MCP : ${err.message}`);
+      }
+    });
+  }
+
+  const mcpConnectorForm = document.getElementById('mcp-connector-form');
+  if (mcpConnectorForm) {
+    mcpConnectorForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nameInp = document.getElementById('mcp-conn-name');
+      const urlInp = document.getElementById('mcp-conn-url');
+      if (!nameInp.value.trim() || !urlInp.value.trim()) return;
+      try {
+        await apiFetch('/api/mcp/connectors', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: nameInp.value.trim(),
+            endpoint_url: urlInp.value.trim(),
+            transport: 'http'
+          })
+        });
+        nameInp.value = '';
+        urlInp.value = '';
+        await loadMcpHub();
+        showSnackbar('Serveur MCP connecté et vérifié !');
+      } catch (err) {
+        showSnackbar(`Erreur : ${err.message}`);
+      }
+    });
+  }
 
   // AI Agent Studio Event Listeners
   const aiSettingsBackdrop = document.getElementById('ai-settings-backdrop');
@@ -2234,6 +2699,7 @@ document.addEventListener('DOMContentLoaded', () => {
       docBackdrop.classList.remove('open');
       ieBackdrop.classList.remove('open');
       closeAiSettings();
+      closeMcpDialog();
       closeApplicationSheet();
       return;
     }
@@ -2261,6 +2727,10 @@ window.openEditDocumentDialog = openEditDocumentDialog;
 window.switchView = switchView;
 window.launchAiForApp = launchAiForApp;
 window.copyAiResponse = copyAiResponse;
-
-
-
+window.openPdfListPreview = openPdfListPreview;
+window.downloadPdfList = downloadPdfList;
+window.openMcpDialog = openMcpDialog;
+window.closeMcpDialog = closeMcpDialog;
+window.testMcpConnector = testMcpConnector;
+window.toggleMcpConnectorItem = toggleMcpConnectorItem;
+window.deleteMcpConnectorItem = deleteMcpConnectorItem;

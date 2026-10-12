@@ -98,6 +98,18 @@ function createDatabase(customDbPath) {
       updated_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS mcp_connectors (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      transport TEXT NOT NULL DEFAULT 'http',
+      endpoint_url TEXT NOT NULL,
+      auth_token TEXT DEFAULT '',
+      enabled INTEGER NOT NULL DEFAULT 1,
+      tools_count INTEGER NOT NULL DEFAULT 7,
+      last_status TEXT DEFAULT 'connected',
+      created_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
     CREATE INDEX IF NOT EXISTS idx_applications_type ON applications(type);
     CREATE INDEX IF NOT EXISTS idx_applications_followup ON applications(follow_up_date);
@@ -1123,6 +1135,226 @@ function createDatabase(customDbPath) {
     return imported;
   }
 
+  function exportApplicationsPdfBuffer(filters = {}) {
+    const apps = listApplications(filters);
+    const stats = getStats();
+
+    const cleanPdfText = (str, maxLen = 40) => {
+      const ascii = String(str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['’]/g, "'")
+        .replace(/[()\\]/g, '')
+        .replace(/[^\x20-\x7E]/g, ' ')
+        .trim();
+      if (ascii.length <= maxLen) return ascii;
+      return ascii.slice(0, Math.max(1, maxLen - 2)) + '..';
+    };
+
+    const workModeMap = {
+      hybrid: 'Hybride',
+      onsite: 'Presentiel',
+      remote: 'Remote'
+    };
+
+    // Landscape A4: 842 x 595 pt
+    const rowsPerPage = 16;
+    const chunks = [];
+    if (apps.length === 0) {
+      chunks.push([]);
+    } else {
+      for (let i = 0; i < apps.length; i += rowsPerPage) {
+        chunks.push(apps.slice(i, i + rowsPerPage));
+      }
+    }
+
+    const pageContents = chunks.map((pageApps, pageIdx) => {
+      const cmds = [];
+
+      // Header Banner (Material 3 Deep Iris #3F378B -> rgb 0.247 0.216 0.545)
+      cmds.push('0.247 0.216 0.545 rg');
+      cmds.push('30 515 782 54 re f');
+
+      // Header Text (White)
+      cmds.push('1 1 1 rg');
+      cmds.push('BT /F2 15 Tf 44 544 Td (ALT-TRACKER  -  LISTE OFFICIELLE DES CANDIDATURES & ENVOIS) Tj ET');
+      const genDate = todayStr();
+      cmds.push(
+        `BT /F1 9.5 Tf 44 526 Td (Export PDF du ${genDate}  |  Total : ${apps.length} candidature(s)  |  Envoyees : ${stats.sentCount}  |  Taux de retour : ${stats.responseRate}%  |  Taux d'entretien : ${stats.interviewRate}%) Tj ET`
+      );
+      cmds.push(
+        `BT /F2 10 Tf 740 536 Td (Page ${pageIdx + 1} / ${chunks.length}) Tj ET`
+      );
+
+      // Table Header Bar (#EAE6FA -> rgb 0.918 0.902 0.980)
+      cmds.push('0.918 0.902 0.980 rg');
+      cmds.push('30 484 782 24 re f');
+
+      // Table Header Labels (Dark text)
+      cmds.push('0.15 0.14 0.28 rg');
+      cmds.push('BT /F2 8.5 Tf 38 493 Td (ENTREPRISE) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 155 493 Td (INTITULE DU POSTE) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 335 493 Td (CONTRAT) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 410 493 Td (STATUT) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 495 493 Td (VILLE & MODE) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 600 493 Td (DATE ENVOI) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 670 493 Td (RELANCE) Tj ET');
+      cmds.push('BT /F2 8.5 Tf 735 493 Td (CONTACT / CV) Tj ET');
+
+      let y = 460;
+      if (pageApps.length === 0) {
+        cmds.push('0.4 0.4 0.45 rg');
+        cmds.push('BT /F1 11 Tf 38 450 Td (Aucune candidature correspondant aux filtres selectionnes.) Tj ET');
+      } else {
+        pageApps.forEach((app, idx) => {
+          // Alternating Zebra Row Background
+          if (idx % 2 === 1) {
+            cmds.push('0.965 0.965 0.985 rg');
+            cmds.push(`30 ${y - 6} 782 22 re f`);
+          }
+
+          // Subtle row divider line
+          cmds.push('0.88 0.88 0.92 RG 0.5 w');
+          cmds.push(`30 ${y - 6} m 812 ${y - 6} l S`);
+
+          const company = cleanPdfText(app.company, 20);
+          const role = cleanPdfText(app.role, 34);
+          const typeLbl = cleanPdfText(TYPE_LABELS[app.type] || app.type, 13);
+          const statusLbl = cleanPdfText(STATUS_LABELS[app.status] || app.status, 15);
+          const locMode = cleanPdfText(
+            `${app.location || '-'} (${workModeMap[app.work_mode] || app.work_mode || ''})`,
+            19
+          );
+          const applied = cleanPdfText(app.applied_date || 'Brouillon', 11);
+          const followup = cleanPdfText(app.follow_up_date || '-', 11);
+          const contactOrCv = cleanPdfText(app.contact_name || app.cv_version || '-', 14);
+
+          cmds.push('0.12 0.12 0.16 rg');
+          cmds.push(`BT /F2 9 Tf 38 ${y} Td (${company}) Tj ET`);
+          cmds.push(`BT /F1 8.5 Tf 155 ${y} Td (${role}) Tj ET`);
+          cmds.push(`BT /F1 8.5 Tf 335 ${y} Td (${typeLbl}) Tj ET`);
+          cmds.push(`BT /F2 8.5 Tf 410 ${y} Td (${statusLbl}) Tj ET`);
+          cmds.push(`BT /F1 8 Tf 495 ${y} Td (${locMode}) Tj ET`);
+          cmds.push(`BT /F1 8.5 Tf 600 ${y} Td (${applied}) Tj ET`);
+          cmds.push(`BT /F1 8.5 Tf 670 ${y} Td (${followup}) Tj ET`);
+          cmds.push(`BT /F1 8 Tf 735 ${y} Td (${contactOrCv}) Tj ET`);
+
+          y -= 25;
+        });
+      }
+
+      // Footer
+      cmds.push('0.45 0.45 0.52 rg');
+      cmds.push(
+        `BT /F1 8 Tf 34 22 Td (Alt-Tracker Material Design 3.0  -  Rapport PDF genere automatiquement  -  MCP & OpenAI Ready) Tj ET`
+      );
+
+      return cmds.join('\n');
+    });
+
+    // Assemble multi-page PDF objects
+    // 1: Catalog, 2: Pages, 3: Font Helvetica, 4: Font Helvetica-Bold
+    // Then for each page i: pageObjId = 5 + i*2, contentObjId = 6 + i*2
+    const objects = [];
+    const pageObjIds = pageContents.map((_, idx) => 5 + idx * 2);
+
+    objects.push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+    objects.push(
+      `2 0 obj\n<< /Type /Pages /Kids [${pageObjIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjIds.length} >>\nendobj\n`
+    );
+    objects.push('3 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n');
+    objects.push('4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n');
+
+    pageContents.forEach((streamStr, idx) => {
+      const pageObjId = 5 + idx * 2;
+      const contentObjId = 6 + idx * 2;
+      objects.push(
+        `${pageObjId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentObjId} 0 R >>\nendobj\n`
+      );
+      objects.push(
+        `${contentObjId} 0 obj\n<< /Length ${Buffer.byteLength(streamStr, 'utf8')} >>\nstream\n${streamStr}\nendstream\nendobj\n`
+      );
+    });
+
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    for (const obj of objects) {
+      offsets.push(Buffer.byteLength(pdf, 'utf8'));
+      pdf += obj;
+    }
+    const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+    pdf += `xref\n0 ${objects.length + 1}\n`;
+    pdf += '0000000000 65535 f \n';
+    for (let i = 1; i < offsets.length; i++) {
+      pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+    return Buffer.from(pdf, 'utf8');
+  }
+
+  // --- MCP Connectors CRUD ---
+  function listMcpConnectors() {
+    let rows = db.prepare('SELECT * FROM mcp_connectors ORDER BY id ASC').all();
+    if (rows.length === 0) {
+      const now = nowIso();
+      db.prepare(`
+        INSERT INTO mcp_connectors (name, transport, endpoint_url, auth_token, enabled, tools_count, last_status, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        'Alt-Tracker MCP Server (Local SQLite)',
+        'http',
+        'http://localhost:3000/api/mcp',
+        '',
+        1,
+        7,
+        'connected',
+        now
+      );
+      rows = db.prepare('SELECT * FROM mcp_connectors ORDER BY id ASC').all();
+    }
+    return rows.map((r) => ({
+      ...r,
+      enabled: Boolean(r.enabled)
+    }));
+  }
+
+  function createMcpConnector(data = {}) {
+    const now = nowIso();
+    const res = db.prepare(`
+      INSERT INTO mcp_connectors (name, transport, endpoint_url, auth_token, enabled, tools_count, last_status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      (data.name || 'Serveur MCP Externe').trim(),
+      data.transport || 'http',
+      (data.endpoint_url || '').trim(),
+      (data.auth_token || '').trim(),
+      data.enabled === false ? 0 : 1,
+      Number(data.tools_count || 0),
+      data.last_status || 'ready',
+      now
+    );
+    return db.prepare('SELECT * FROM mcp_connectors WHERE id = ?').get(Number(res.lastInsertRowid));
+  }
+
+  function toggleMcpConnector(id, enabled) {
+    db.prepare('UPDATE mcp_connectors SET enabled = ? WHERE id = ?').run(enabled ? 1 : 0, Number(id));
+    return db.prepare('SELECT * FROM mcp_connectors WHERE id = ?').get(Number(id));
+  }
+
+  function updateMcpConnectorStatus(id, lastStatus, toolsCount) {
+    db.prepare('UPDATE mcp_connectors SET last_status = ?, tools_count = ? WHERE id = ?').run(
+      lastStatus,
+      Number(toolsCount || 0),
+      Number(id)
+    );
+    return db.prepare('SELECT * FROM mcp_connectors WHERE id = ?').get(Number(id));
+  }
+
+  function deleteMcpConnector(id) {
+    const res = db.prepare('DELETE FROM mcp_connectors WHERE id = ?').run(Number(id));
+    return res.changes > 0;
+  }
+
   seedIfEmpty();
   ensureDocumentFiles();
 
@@ -1145,7 +1377,13 @@ function createDatabase(customDbPath) {
     saveAiSettings,
     getStats,
     exportCsv,
-    importApplications
+    exportApplicationsPdfBuffer,
+    importApplications,
+    listMcpConnectors,
+    createMcpConnector,
+    toggleMcpConnector,
+    updateMcpConnectorStatus,
+    deleteMcpConnector
   };
 }
 
