@@ -488,15 +488,15 @@ function renderKanban() {
             ${app.favorite ? '<span class="material-symbols-rounded filled" style="color:#f59e0b;font-size:18px;">star</span>' : ''}
           </div>
 
-          <div>
+          <div style="min-width:0;">
             <div class="m3-kanban-company">${escapeHtml(app.company)}</div>
-            <div class="m3-kanban-role">${escapeHtml(app.role)}</div>
+            <div class="m3-kanban-role">${escapeHtml(app.role || '—')}</div>
           </div>
 
           <div class="m3-kanban-meta">
-            ${app.location ? `<span class="m3-kanban-meta-item"><span class="material-symbols-rounded" style="font-size:13px;">location_on</span>${escapeHtml(app.location)}</span>` : ''}
-            ${app.rhythm ? `<span class="m3-kanban-meta-item"><span class="material-symbols-rounded" style="font-size:13px;">event_repeat</span>${escapeHtml(app.rhythm)}</span>` : ''}
-            ${app.salary ? `<span class="m3-kanban-meta-item"><span class="material-symbols-rounded" style="font-size:13px;">payments</span>${escapeHtml(app.salary)}</span>` : ''}
+            ${app.location ? `<span class="m3-kanban-meta-item" title="${escapeHtml(app.location)}"><span class="material-symbols-rounded" style="font-size:13px;">location_on</span><span class="m3-kanban-meta-text">${escapeHtml(app.location)}</span></span>` : ''}
+            ${app.rhythm ? `<span class="m3-kanban-meta-item" title="${escapeHtml(app.rhythm)}"><span class="material-symbols-rounded" style="font-size:13px;">event_repeat</span><span class="m3-kanban-meta-text">${escapeHtml(app.rhythm)}</span></span>` : ''}
+            ${app.salary ? `<span class="m3-kanban-meta-item" title="${escapeHtml(app.salary)}"><span class="material-symbols-rounded" style="font-size:13px;">payments</span><span class="m3-kanban-meta-text">${escapeHtml(app.salary)}</span></span>` : ''}
           </div>
 
           ${due ? `
