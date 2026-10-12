@@ -1,0 +1,350 @@
+/* ==========================================================================
+   Google Material Design 3.0 (Material You) — System Design Tokens
+   Supports 5 Dynamic Color Palettes (Iris, Emerald, Ocean, Terracotta, Rose)
+   in both Light & Dark schemes.
+   ========================================================================== */
+
+:root,
+[data-theme="light"][data-palette="iris"] {
+  /* M3 Baseline Iris / Violet (Light) */
+  --md-sys-color-primary: #5b4bb7;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #e4dfff;
+  --md-sys-color-on-primary-container: #180263;
+
+  --md-sys-color-secondary: #5e5c71;
+  --md-sys-color-on-secondary: #ffffff;
+  --md-sys-color-secondary-container: #e4dff9;
+  --md-sys-color-on-secondary-container: #1b192c;
+
+  --md-sys-color-tertiary: #7b5266;
+  --md-sys-color-on-tertiary: #ffffff;
+  --md-sys-color-tertiary-container: #ffd8e8;
+  --md-sys-color-on-tertiary-container: #301122;
+
+  --md-sys-color-error: #ba1a1a;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #ffdad6;
+  --md-sys-color-on-error-container: #410002;
+
+  --md-sys-color-surface: #fcf8ff;
+  --md-sys-color-on-surface: #1c1b20;
+  --md-sys-color-surface-variant: #e5e1ec;
+  --md-sys-color-on-surface-variant: #47464f;
+
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f6f2fa;
+  --md-sys-color-surface-container: #f0ecf4;
+  --md-sys-color-surface-container-high: #eae7ef;
+  --md-sys-color-surface-container-highest: #e4e1e9;
+
+  --md-sys-color-outline: #787680;
+  --md-sys-color-outline-variant: #c9c5d0;
+  --md-sys-color-scrim: rgba(15, 14, 23, 0.45);
+}
+
+[data-theme="dark"][data-palette="iris"] {
+  /* M3 Baseline Iris / Violet (Dark) */
+  --md-sys-color-primary: #c7bfff;
+  --md-sys-color-on-primary: #2d1b87;
+  --md-sys-color-primary-container: #43329e;
+  --md-sys-color-on-primary-container: #e4dfff;
+
+  --md-sys-color-secondary: #c8c3dc;
+  --md-sys-color-on-secondary: #302e42;
+  --md-sys-color-secondary-container: #474459;
+  --md-sys-color-on-secondary-container: #e4dff9;
+
+  --md-sys-color-tertiary: #ebb8cf;
+  --md-sys-color-on-tertiary: #472537;
+  --md-sys-color-tertiary-container: #603b4e;
+  --md-sys-color-on-tertiary-container: #ffd8e8;
+
+  --md-sys-color-error: #ffb4ab;
+  --md-sys-color-on-error: #690005;
+  --md-sys-color-error-container: #93000a;
+  --md-sys-color-on-error-container: #ffdad6;
+
+  --md-sys-color-surface: #131318;
+  --md-sys-color-on-surface: #e5e1e9;
+  --md-sys-color-surface-variant: #47464f;
+  --md-sys-color-on-surface-variant: #c9c5d0;
+
+  --md-sys-color-surface-container-lowest: #0e0e13;
+  --md-sys-color-surface-container-low: #1c1b20;
+  --md-sys-color-surface-container: #201f25;
+  --md-sys-color-surface-container-high: #2a292f;
+  --md-sys-color-surface-container-highest: #35343a;
+
+  --md-sys-color-outline: #928f99;
+  --md-sys-color-outline-variant: #47464f;
+  --md-sys-color-scrim: rgba(0, 0, 0, 0.65);
+}
+
+/* --- Palette: Emerald (Vert Émeraude) --- */
+[data-theme="light"][data-palette="emerald"] {
+  --md-sys-color-primary: #0f6b52;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #a2f2d3;
+  --md-sys-color-on-primary-container: #002117;
+  --md-sys-color-secondary: #4c635a;
+  --md-sys-color-secondary-container: #cee9dd;
+  --md-sys-color-on-secondary-container: #082018;
+  --md-sys-color-tertiary: #3f6375;
+  --md-sys-color-tertiary-container: #c2e8fd;
+  --md-sys-color-on-tertiary-container: #001e2b;
+  --md-sys-color-surface: #f5fbf7;
+  --md-sys-color-on-surface: #171d1a;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #eff5f1;
+  --md-sys-color-surface-container: #e9efec;
+  --md-sys-color-surface-container-high: #e3eae6;
+  --md-sys-color-surface-container-highest: #dee4e0;
+  --md-sys-color-on-surface-variant: #404944;
+  --md-sys-color-outline: #707974;
+  --md-sys-color-outline-variant: #bfc9c3;
+}
+
+[data-theme="dark"][data-palette="emerald"] {
+  --md-sys-color-primary: #86d6b8;
+  --md-sys-color-on-primary: #003829;
+  --md-sys-color-primary-container: #00513d;
+  --md-sys-color-on-primary-container: #a2f2d3;
+  --md-sys-color-secondary: #b3ccc1;
+  --md-sys-color-secondary-container: #344c42;
+  --md-sys-color-on-secondary-container: #cee9dd;
+  --md-sys-color-tertiary: #a7cce0;
+  --md-sys-color-tertiary-container: #264b5c;
+  --md-sys-color-on-tertiary-container: #c2e8fd;
+  --md-sys-color-surface: #0f1512;
+  --md-sys-color-on-surface: #dee4e0;
+  --md-sys-color-surface-container-lowest: #0a0f0d;
+  --md-sys-color-surface-container-low: #171d1a;
+  --md-sys-color-surface-container: #1b211e;
+  --md-sys-color-surface-container-high: #252b28;
+  --md-sys-color-surface-container-highest: #303633;
+  --md-sys-color-on-surface-variant: #bfc9c3;
+  --md-sys-color-outline: #89938e;
+  --md-sys-color-outline-variant: #404944;
+}
+
+/* --- Palette: Ocean (Bleu Google) --- */
+[data-theme="light"][data-palette="ocean"] {
+  --md-sys-color-primary: #1b5ea8;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #d5e3ff;
+  --md-sys-color-on-primary-container: #001b3c;
+  --md-sys-color-secondary: #555f71;
+  --md-sys-color-secondary-container: #d9e3f8;
+  --md-sys-color-on-secondary-container: #121c2b;
+  --md-sys-color-tertiary: #6e5676;
+  --md-sys-color-tertiary-container: #f8d8fe;
+  --md-sys-color-on-tertiary-container: #271430;
+  --md-sys-color-surface: #f8f9ff;
+  --md-sys-color-on-surface: #191c20;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #f2f3fa;
+  --md-sys-color-surface-container: #eceef4;
+  --md-sys-color-surface-container-high: #e6e8ee;
+  --md-sys-color-surface-container-highest: #e1e2e8;
+  --md-sys-color-on-surface-variant: #43474e;
+  --md-sys-color-outline: #74777f;
+  --md-sys-color-outline-variant: #c3c6cf;
+}
+
+[data-theme="dark"][data-palette="ocean"] {
+  --md-sys-color-primary: #a7c8ff;
+  --md-sys-color-on-primary: #003061;
+  --md-sys-color-primary-container: #004689;
+  --md-sys-color-on-primary-container: #d5e3ff;
+  --md-sys-color-secondary: #bdc7dc;
+  --md-sys-color-secondary-container: #3d4758;
+  --md-sys-color-on-secondary-container: #d9e3f8;
+  --md-sys-color-tertiary: #dbbde2;
+  --md-sys-color-tertiary-container: #553f5d;
+  --md-sys-color-on-tertiary-container: #f8d8fe;
+  --md-sys-color-surface: #111318;
+  --md-sys-color-on-surface: #e1e2e8;
+  --md-sys-color-surface-container-lowest: #0b0e13;
+  --md-sys-color-surface-container-low: #191c20;
+  --md-sys-color-surface-container: #1d2024;
+  --md-sys-color-surface-container-high: #272a2f;
+  --md-sys-color-surface-container-highest: #32353a;
+  --md-sys-color-on-surface-variant: #c3c6cf;
+  --md-sys-color-outline: #8d9199;
+  --md-sys-color-outline-variant: #43474e;
+}
+
+/* --- Palette: Terracotta (Ambre / Chaleureux) --- */
+[data-theme="light"][data-palette="terracotta"] {
+  --md-sys-color-primary: #8f4927;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffdbcc;
+  --md-sys-color-on-primary-container: #351000;
+  --md-sys-color-secondary: #775749;
+  --md-sys-color-secondary-container: #ffdbcc;
+  --md-sys-color-on-secondary-container: #2c160b;
+  --md-sys-color-tertiary: #665f31;
+  --md-sys-color-tertiary-container: #eee4a9;
+  --md-sys-color-on-tertiary-container: #201c00;
+  --md-sys-color-surface: #fff8f6;
+  --md-sys-color-on-surface: #231916;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fef1ec;
+  --md-sys-color-surface-container: #f8ebe6;
+  --md-sys-color-surface-container-high: #f2e5e0;
+  --md-sys-color-surface-container-highest: #ece0db;
+  --md-sys-color-on-surface-variant: #53433d;
+  --md-sys-color-outline: #85736c;
+  --md-sys-color-outline-variant: #d8c2b9;
+}
+
+[data-theme="dark"][data-palette="terracotta"] {
+  --md-sys-color-primary: #ffb595;
+  --md-sys-color-on-primary: #551f01;
+  --md-sys-color-primary-container: #713313;
+  --md-sys-color-on-primary-container: #ffdbcc;
+  --md-sys-color-secondary: #e7bdb0;
+  --md-sys-color-secondary-container: #5d4033;
+  --md-sys-color-on-secondary-container: #ffdbcc;
+  --md-sys-color-tertiary: #d1c88f;
+  --md-sys-color-tertiary-container: #4d471b;
+  --md-sys-color-on-tertiary-container: #eee4a9;
+  --md-sys-color-surface: #1a110e;
+  --md-sys-color-on-surface: #f1dfda;
+  --md-sys-color-surface-container-lowest: #140c09;
+  --md-sys-color-surface-container-low: #231916;
+  --md-sys-color-surface-container: #271d1a;
+  --md-sys-color-surface-container-high: #322824;
+  --md-sys-color-surface-container-highest: #3d322e;
+  --md-sys-color-on-surface-variant: #d8c2b9;
+  --md-sys-color-outline: #a08c85;
+  --md-sys-color-outline-variant: #53433d;
+}
+
+/* --- Palette: Rose (Cerise / Expressif) --- */
+[data-theme="light"][data-palette="rose"] {
+  --md-sys-color-primary: #984061;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #ffd9e2;
+  --md-sys-color-on-primary-container: #3e001d;
+  --md-sys-color-secondary: #74565f;
+  --md-sys-color-secondary-container: #ffd9e2;
+  --md-sys-color-on-secondary-container: #2b151c;
+  --md-sys-color-tertiary: #7c5635;
+  --md-sys-color-tertiary-container: #ffdcc1;
+  --md-sys-color-on-tertiary-container: #2e1500;
+  --md-sys-color-surface: #fff8f8;
+  --md-sys-color-on-surface: #22191c;
+  --md-sys-color-surface-container-lowest: #ffffff;
+  --md-sys-color-surface-container-low: #fff0f2;
+  --md-sys-color-surface-container: #f8eaed;
+  --md-sys-color-surface-container-high: #f2e5e7;
+  --md-sys-color-surface-container-highest: #ece0e1;
+  --md-sys-color-on-surface-variant: #514347;
+  --md-sys-color-outline: #837377;
+  --md-sys-color-outline-variant: #d5c2c6;
+}
+
+[data-theme="dark"][data-palette="rose"] {
+  --md-sys-color-primary: #ffb1c8;
+  --md-sys-color-on-primary: #5e1133;
+  --md-sys-color-primary-container: #7b2949;
+  --md-sys-color-on-primary-container: #ffd9e2;
+  --md-sys-color-secondary: #e3bdc6;
+  --md-sys-color-secondary-container: #5a3f47;
+  --md-sys-color-on-secondary-container: #ffd9e2;
+  --md-sys-color-tertiary: #efbd94;
+  --md-sys-color-tertiary-container: #613f20;
+  --md-sys-color-on-tertiary-container: #ffdcc1;
+  --md-sys-color-surface: #191113;
+  --md-sys-color-on-surface: #efdfe1;
+  --md-sys-color-surface-container-lowest: #140c0e;
+  --md-sys-color-surface-container-low: #22191c;
+  --md-sys-color-surface-container: #261d20;
+  --md-sys-color-surface-container-high: #31282a;
+  --md-sys-color-surface-container-highest: #3c3235;
+  --md-sys-color-on-surface-variant: #d5c2c6;
+  --md-sys-color-outline: #9e8c90;
+  --md-sys-color-outline-variant: #514347;
+}
+
+/* ==========================================================================
+   Semantic Status & Contract Type Colors (M3 Harmonized)
+   ========================================================================== */
+:root,
+[data-theme="light"] {
+  --status-draft-bg: #ebe7f3;
+  --status-draft-fg: #444054;
+  --status-applied-bg: #dbeafe;
+  --status-applied-fg: #1e40af;
+  --status-interview-bg: #fef3c7;
+  --status-interview-fg: #92400e;
+  --status-technical-bg: #ede9fe;
+  --status-technical-fg: #5b21b6;
+  --status-offer-bg: #d1fae5;
+  --status-offer-fg: #065f46;
+  --status-rejected-bg: #fee2e2;
+  --status-rejected-fg: #991b1b;
+
+  --type-alternance-bg: #e0e7ff;
+  --type-alternance-fg: #3730a3;
+  --type-job-bg: #dcfce7;
+  --type-job-fg: #166534;
+  --type-stage-bg: #ffedd5;
+  --type-stage-fg: #9a3412;
+  --type-freelance-bg: #fae8ff;
+  --type-freelance-fg: #86198f;
+  --type-autre-bg: #f1f5f9;
+  --type-autre-fg: #334155;
+}
+
+[data-theme="dark"] {
+  --status-draft-bg: #322f3d;
+  --status-draft-fg: #d0cadd;
+  --status-applied-bg: #1e3a5f;
+  --status-applied-fg: #93c5fd;
+  --status-interview-bg: #4d330c;
+  --status-interview-fg: #fcd34d;
+  --status-technical-bg: #3b2063;
+  --status-technical-fg: #c4b5fd;
+  --status-offer-bg: #0f3f30;
+  --status-offer-fg: #6ee7b7;
+  --status-rejected-bg: #4c171b;
+  --status-rejected-fg: #fca5a5;
+
+  --type-alternance-bg: #262961;
+  --type-alternance-fg: #a5b4fc;
+  --type-job-bg: #133e29;
+  --type-job-fg: #86efac;
+  --type-stage-bg: #4a2610;
+  --type-stage-fg: #fdba74;
+  --type-freelance-bg: #4a1852;
+  --type-freelance-fg: #f0abfc;
+  --type-autre-bg: #27303f;
+  --type-autre-fg: #cbd5e1;
+}
+
+/* ==========================================================================
+   M3 Shape, Typography & Elevation Tokens
+   ========================================================================== */
+:root {
+  --md-sys-shape-corner-none: 0px;
+  --md-sys-shape-corner-extra-small: 4px;
+  --md-sys-shape-corner-small: 8px;
+  --md-sys-shape-corner-medium: 12px;
+  --md-sys-shape-corner-large: 16px;
+  --md-sys-shape-corner-extra-large: 28px;
+  --md-sys-shape-corner-full: 9999px;
+
+  --md-sys-elevation-1: 0 1px 2px rgba(0, 0, 0, 0.08), 0 1px 3px 1px rgba(0, 0, 0, 0.05);
+  --md-sys-elevation-2: 0 1px 2px rgba(0, 0, 0, 0.1), 0 2px 6px 2px rgba(0, 0, 0, 0.07);
+  --md-sys-elevation-3: 0 4px 8px 3px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+  --md-sys-elevation-4: 0 6px 10px 4px rgba(0, 0, 0, 0.12), 0 2px 3px rgba(0, 0, 0, 0.08);
+
+  --md-sys-motion-easing-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --md-sys-motion-duration-short: 180ms;
+  --md-sys-motion-duration-medium: 280ms;
+
+  --md-font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
