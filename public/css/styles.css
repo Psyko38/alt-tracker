@@ -1136,6 +1136,47 @@ button, input, select, textarea {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.m3-doc-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--md-sys-elevation-2);
+  border-color: var(--md-sys-color-primary);
+}
+
+/* M3 In-Page Document Viewer Modal */
+.m3-doc-viewer-dialog {
+  width: min(1040px, 96vw);
+  height: 90vh;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.m3-doc-viewer-body {
+  flex: 1;
+  background-color: var(--md-sys-color-surface-container-lowest);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.m3-doc-preview-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background-color: #ffffff;
+}
+
+.m3-doc-preview-img {
+  max-width: 96%;
+  max-height: 96%;
+  object-fit: contain;
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-2);
 }
 
 /* ==========================================================================

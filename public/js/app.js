@@ -606,7 +606,18 @@ function renderListTable() {
           }
         </td>
         <td>
-          <span style="font-size:12.5px;">${escapeHtml(app.cv_version || '—')}</span>
+          ${(() => {
+            const linkedDoc = findMatchingDocument(app);
+            if (linkedDoc) {
+              return `
+                <button class="m3-btn m3-btn-tonal m3-btn-sm" onclick="event.stopPropagation(); openDocumentPreview(${linkedDoc.id})" title="Ouvrir et visualiser ce document">
+                  <span class="material-symbols-rounded" style="font-size:15px;">visibility</span>
+                  <span>${escapeHtml(app.cv_version || linkedDoc.label)}</span>
+                </button>
+              `;
+            }
+            return `<span style="font-size:12.5px;">${escapeHtml(app.cv_version || '—')}</span>`;
+          })()}
         </td>
         <td style="text-align: right;" onclick="event.stopPropagation();">
           <div style="display: inline-flex; gap: 6px;">
@@ -718,8 +729,25 @@ async function quickMarkFollowUp(appId) {
 }
 
 /* ==========================================================================
-   5. Render Documents (CV & Cover Letters) View
+   5. Render Documents (CV & Cover Letters) View & In-Page Viewer
    ========================================================================== */
+function findMatchingDocument(app) {
+  if (!app || !state.documents || state.documents.length === 0) return null;
+  if (app.document_id) {
+    const byId = state.documents.find((d) => Number(d.id) === Number(app.document_id));
+    if (byId) return byId;
+  }
+  if (app.cv_version && app.cv_version.trim() !== '') {
+    const cvLower = app.cv_version.toLowerCase();
+    const byLabel = state.documents.find((d) =>
+      cvLower.includes(d.label.toLowerCase()) ||
+      d.label.toLowerCase().includes(cvLower)
+    );
+    if (byLabel) return byLabel;
+  }
+  return null;
+}
+
 function renderDocumentsView() {
   const grid = document.getElementById('documents-grid');
   if (!grid) return;
@@ -744,13 +772,19 @@ function renderDocumentsView() {
     return `
       <div class="m3-doc-card">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
-          <div>
+          <div style="cursor:pointer;" onclick="openDocumentPreview(${doc.id})">
             <span class="m3-badge m3-type-alternance">${escapeHtml(docTypeLabels[doc.doc_type] || doc.doc_type)} · ${escapeHtml(doc.version_tag || 'v1.0')}</span>
-            <h3 style="font-size:16px; font-weight:700; margin-top:8px;">${escapeHtml(doc.label)}</h3>
+            <h3 style="font-size:16px; font-weight:700; margin-top:8px; color:var(--md-sys-color-on-surface);">${escapeHtml(doc.label)}</h3>
+            ${doc.file_name ? `<div style="font-size:11.5px; color:var(--md-sys-color-primary); margin-top:2px;">📄 ${escapeHtml(doc.file_name)}</div>` : ''}
           </div>
-          <button class="m3-icon-btn" onclick="deleteDocumentItem(${doc.id})" title="Supprimer">
-            <span class="material-symbols-rounded">delete</span>
-          </button>
+          <div style="display:flex; gap:6px;">
+            <button class="m3-icon-btn" onclick="openEditDocumentDialog(${doc.id})" title="Modifier ou remplacer le fichier">
+              <span class="material-symbols-rounded">edit</span>
+            </button>
+            <button class="m3-icon-btn" onclick="deleteDocumentItem(${doc.id})" title="Supprimer">
+              <span class="material-symbols-rounded">delete</span>
+            </button>
+          </div>
         </div>
 
         ${doc.notes ? `<p style="font-size:13px; color:var(--md-sys-color-on-surface-variant);">${escapeHtml(doc.notes)}</p>` : ''}
@@ -761,23 +795,124 @@ function renderDocumentsView() {
           <span><strong>${pos}</strong> entretien(s) (${rate}%)</span>
         </div>
 
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <button class="m3-btn m3-btn-filled m3-btn-sm" onclick="openDocumentPreview(${doc.id})">
+            <span class="material-symbols-rounded" style="font-size:16px;">visibility</span>
+            <span>Visualiser dans la page</span>
+          </button>
           ${doc.stored_name ? `
-            <a href="/api/documents/${doc.id}/download" class="m3-btn m3-btn-tonal m3-btn-sm">
+            <a href="/api/documents/${doc.id}/view" target="_blank" rel="noopener" class="m3-btn m3-btn-tonal m3-btn-sm" title="Ouvrir dans un nouvel onglet">
+              <span class="material-symbols-rounded" style="font-size:16px;">open_in_new</span>
+              <span>Onglet</span>
+            </a>
+            <a href="/api/documents/${doc.id}/download" class="m3-btn m3-btn-outlined m3-btn-sm" title="Télécharger le fichier">
               <span class="material-symbols-rounded" style="font-size:16px;">download</span>
-              Télécharger (${escapeHtml(doc.file_name)})
             </a>
           ` : ''}
           ${doc.external_url ? `
             <a href="${escapeHtml(doc.external_url)}" target="_blank" rel="noopener" class="m3-btn m3-btn-outlined m3-btn-sm">
-              <span class="material-symbols-rounded" style="font-size:16px;">open_in_new</span>
-              Ouvrir le lien
+              <span class="material-symbols-rounded" style="font-size:16px;">link</span>
+              <span>Lien externe</span>
             </a>
           ` : ''}
         </div>
       </div>
     `;
   }).join('');
+}
+
+function openDocumentPreview(docId) {
+  const doc = state.documents.find((d) => Number(d.id) === Number(docId));
+  if (!doc) {
+    showSnackbar('Document introuvable');
+    return;
+  }
+
+  const backdrop = document.getElementById('doc-preview-backdrop');
+  const titleEl = document.getElementById('doc-preview-title');
+  const subEl = document.getElementById('doc-preview-subtitle');
+  const bodyEl = document.getElementById('doc-preview-body');
+  const newTabBtn = document.getElementById('doc-preview-newtab');
+  const dlBtn = document.getElementById('doc-preview-download');
+
+  titleEl.textContent = doc.label;
+  subEl.textContent = `${doc.version_tag || 'v1.0'} ${doc.file_name ? `· ${doc.file_name}` : ''}`;
+
+  if (doc.stored_name) {
+    const viewUrl = `/api/documents/${doc.id}/view`;
+    const dlUrl = `/api/documents/${doc.id}/download`;
+    newTabBtn.href = viewUrl;
+    newTabBtn.style.display = 'inline-flex';
+    dlBtn.href = dlUrl;
+    dlBtn.style.display = 'inline-flex';
+
+    const ext = (doc.file_name || doc.stored_name).toLowerCase();
+    if (ext.endsWith('.png') || ext.endsWith('.jpg') || ext.endsWith('.jpeg') || ext.endsWith('.webp')) {
+      bodyEl.innerHTML = `<img src="${viewUrl}" alt="${escapeHtml(doc.label)}" class="m3-doc-preview-img" />`;
+    } else {
+      bodyEl.innerHTML = `<iframe src="${viewUrl}" class="m3-doc-preview-frame" title="${escapeHtml(doc.label)}"></iframe>`;
+    }
+  } else if (doc.external_url) {
+    newTabBtn.href = doc.external_url;
+    newTabBtn.style.display = 'inline-flex';
+    dlBtn.style.display = 'none';
+    bodyEl.innerHTML = `
+      <div class="m3-empty-state" style="max-width: 480px;">
+        <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-sys-color-primary);">link</span>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--md-sys-color-on-surface);">${escapeHtml(doc.label)}</h3>
+        <p>${escapeHtml(doc.notes || 'Ce document pointe vers une ressource externe.')}</p>
+        <div style="display: flex; gap: 10px; margin-top: 12px;">
+          <a href="${escapeHtml(doc.external_url)}" target="_blank" rel="noopener" class="m3-btn m3-btn-filled">
+            <span class="material-symbols-rounded">open_in_new</span>
+            <span>Ouvrir le lien externe</span>
+          </a>
+          <button class="m3-btn m3-btn-tonal" onclick="closeDocumentPreview(); openEditDocumentDialog(${doc.id});">
+            <span class="material-symbols-rounded">upload_file</span>
+            <span>Joindre un PDF local</span>
+          </button>
+        </div>
+      </div>
+    `;
+  } else {
+    newTabBtn.style.display = 'none';
+    dlBtn.style.display = 'none';
+    bodyEl.innerHTML = `
+      <div class="m3-empty-state" style="max-width: 480px;">
+        <span class="material-symbols-rounded" style="font-size: 48px; color: var(--md-sys-color-primary);">upload_file</span>
+        <h3 style="font-size: 18px; font-weight: 700; color: var(--md-sys-color-on-surface);">Aucun fichier joint pour l’instant</h3>
+        <p>Ajoutez un fichier PDF ou une image à <strong>${escapeHtml(doc.label)}</strong> pour le visualiser directement ici.</p>
+        <button class="m3-btn m3-btn-filled" style="margin-top: 10px;" onclick="closeDocumentPreview(); openEditDocumentDialog(${doc.id});">
+          <span class="material-symbols-rounded">upload_file</span>
+          <span>Choisir un fichier PDF / Image</span>
+        </button>
+      </div>
+    `;
+  }
+
+  backdrop.classList.add('open');
+}
+
+function closeDocumentPreview() {
+  const backdrop = document.getElementById('doc-preview-backdrop');
+  if (backdrop) backdrop.classList.remove('open');
+  const bodyEl = document.getElementById('doc-preview-body');
+  if (bodyEl) bodyEl.innerHTML = '';
+}
+
+function openEditDocumentDialog(docId) {
+  const doc = state.documents.find((d) => Number(d.id) === Number(docId));
+  if (!doc) return;
+  document.getElementById('document-form').reset();
+  document.getElementById('doc-id').value = doc.id;
+  document.getElementById('doc-dialog-title').textContent = `Modifier — ${doc.label}`;
+  document.getElementById('doc-label').value = doc.label || '';
+  document.getElementById('doc-type').value = doc.doc_type || 'cv';
+  document.getElementById('doc-version').value = doc.version_tag || 'v1.0';
+  document.getElementById('doc-url').value = doc.external_url || '';
+  document.getElementById('doc-notes').value = doc.notes || '';
+  syncAllM3Selects();
+  syncAllM3FileInputs();
+  document.getElementById('doc-dialog-backdrop').classList.add('open');
 }
 
 async function deleteDocumentItem(docId) {
@@ -801,6 +936,7 @@ async function openApplicationSheet(appId, showScrim = true) {
 
     const sMeta = STATUS_META[app.status] || STATUS_META.applied;
     const tMeta = TYPE_META[app.type] || TYPE_META.autre;
+    const linkedDoc = findMatchingDocument(app);
 
     document.getElementById('sheet-badges').innerHTML = `
       <span class="m3-badge ${tMeta.cls}">${tMeta.label}</span>
@@ -814,6 +950,12 @@ async function openApplicationSheet(appId, showScrim = true) {
         <span class="material-symbols-rounded" style="font-size:16px;">schedule_send</span>
         Marquer relancé (+7j)
       </button>
+      ${linkedDoc ? `
+        <button class="m3-btn m3-btn-filled m3-btn-sm" onclick="openDocumentPreview(${linkedDoc.id})">
+          <span class="material-symbols-rounded" style="font-size:16px;">visibility</span>
+          Voir le CV (${escapeHtml(linkedDoc.version_tag || 'PDF')})
+        </button>
+      ` : ''}
       ${app.job_url ? `
         <a href="${escapeHtml(app.job_url)}" target="_blank" rel="noopener" class="m3-btn m3-btn-outlined m3-btn-sm">
           <span class="material-symbols-rounded" style="font-size:16px;">open_in_new</span>
@@ -845,7 +987,10 @@ async function openApplicationSheet(appId, showScrim = true) {
       </div>
       <div class="m3-detail-box">
         <span class="m3-detail-label">Documents envoyés</span>
-        <span class="m3-detail-value">${escapeHtml(app.cv_version || 'CV non renseigné')}${app.cl_version ? ` · ${escapeHtml(app.cl_version)}` : ''}</span>
+        <span class="m3-detail-value">
+          ${escapeHtml(app.cv_version || 'CV non renseigné')}${app.cl_version ? ` · ${escapeHtml(app.cl_version)}` : ''}
+          ${linkedDoc ? `<div style="margin-top:6px;"><button class="m3-btn m3-btn-tonal m3-btn-sm" onclick="openDocumentPreview(${linkedDoc.id})"><span class="material-symbols-rounded" style="font-size:15px;">visibility</span>Ouvrir le document</button></div>` : ''}
+        </span>
       </div>
     `;
 
@@ -1379,10 +1524,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Document Modal
+  // Document Modal & In-Page Viewer
   const docBackdrop = document.getElementById('doc-dialog-backdrop');
+  const previewBackdrop = document.getElementById('doc-preview-backdrop');
+
+  document.getElementById('btn-close-doc-preview').addEventListener('click', closeDocumentPreview);
+  previewBackdrop.addEventListener('click', (e) => {
+    if (e.target === previewBackdrop) closeDocumentPreview();
+  });
+
   document.getElementById('btn-new-document').addEventListener('click', () => {
     document.getElementById('document-form').reset();
+    document.getElementById('doc-id').value = '';
+    document.getElementById('doc-dialog-title').textContent = 'Ajouter un CV ou Document';
     syncAllM3Selects();
     syncAllM3FileInputs();
     docBackdrop.classList.add('open');
@@ -1392,6 +1546,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('document-form').addEventListener('submit', async (e) => {
     e.preventDefault();
+    const docId = document.getElementById('doc-id').value;
     const fileInput = document.getElementById('doc-file');
     const file = fileInput.files[0];
 
@@ -1410,22 +1565,35 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
+    const payload = {
+      label: document.getElementById('doc-label').value,
+      doc_type: document.getElementById('doc-type').value,
+      version_tag: document.getElementById('doc-version').value,
+      external_url: document.getElementById('doc-url').value,
+      notes: document.getElementById('doc-notes').value
+    };
+
+    if (fileBase64) {
+      payload.file_name = fileName;
+      payload.mime_type = mimeType;
+      payload.file_base64 = fileBase64;
+    }
+
     try {
-      await apiFetch('/api/documents', {
-        method: 'POST',
-        body: JSON.stringify({
-          label: document.getElementById('doc-label').value,
-          doc_type: document.getElementById('doc-type').value,
-          version_tag: document.getElementById('doc-version').value,
-          external_url: document.getElementById('doc-url').value,
-          notes: document.getElementById('doc-notes').value,
-          file_name: fileName,
-          mime_type: mimeType,
-          file_base64: fileBase64
-        })
-      });
+      if (docId) {
+        await apiFetch(`/api/documents/${docId}`, {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        showSnackbar('Document mis à jour');
+      } else {
+        await apiFetch('/api/documents', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        showSnackbar('Document ajouté à la bibliothèque');
+      }
       docBackdrop.classList.remove('open');
-      showSnackbar('Document ajouté à la bibliothèque');
       await refreshAllData();
     } catch (err) {
       showSnackbar(`Erreur : ${err.message}`);
@@ -1479,6 +1647,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (e.key === 'Escape') {
       closeAllM3Dropdowns();
+      closeDocumentPreview();
       closeApplicationDialog();
       docBackdrop.classList.remove('open');
       ieBackdrop.classList.remove('open');
@@ -1503,5 +1672,8 @@ window.changeApplicationStatus = changeApplicationStatus;
 window.toggleFavorite = toggleFavorite;
 window.quickMarkFollowUp = quickMarkFollowUp;
 window.deleteDocumentItem = deleteDocumentItem;
+window.openDocumentPreview = openDocumentPreview;
+window.closeDocumentPreview = closeDocumentPreview;
+window.openEditDocumentDialog = openEditDocumentDialog;
 window.switchView = switchView;
 

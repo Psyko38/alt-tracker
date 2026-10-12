@@ -121,6 +121,16 @@ function createApp(customDbPath) {
     }
   });
 
+  app.get('/api/documents/:id', (req, res) => {
+    try {
+      const doc = store.getDocumentById(req.params.id);
+      if (!doc) return res.status(404).json({ error: 'Document introuvable' });
+      res.json(doc);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/documents', (req, res) => {
     try {
       const { label } = req.body || {};
@@ -129,6 +139,42 @@ function createApp(customDbPath) {
       }
       const doc = store.createDocument(req.body);
       res.status(201).json(doc);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/documents/:id', (req, res) => {
+    try {
+      const updated = store.updateDocument(req.params.id, req.body || {});
+      if (!updated) return res.status(404).json({ error: 'Document introuvable' });
+      res.json(updated);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/documents/:id/view', (req, res) => {
+    try {
+      const doc = store.getDocumentById(req.params.id);
+      if (!doc || !doc.stored_name) {
+        return res.status(404).json({ error: 'Fichier introuvable pour ce document.' });
+      }
+      const filePath = path.join(store.uploadsDir, doc.stored_name);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ error: 'Fichier absent du disque.' });
+      }
+      const ext = path.extname(doc.file_name || doc.stored_name).toLowerCase();
+      let mime = doc.mime_type || 'application/octet-stream';
+      if (ext === '.pdf') mime = 'application/pdf';
+      else if (ext === '.png') mime = 'image/png';
+      else if (ext === '.jpg' || ext === '.jpeg') mime = 'image/jpeg';
+      else if (ext === '.webp') mime = 'image/webp';
+
+      const safeName = encodeURIComponent(doc.file_name || doc.stored_name);
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Disposition', `inline; filename="${safeName}"`);
+      res.sendFile(filePath);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

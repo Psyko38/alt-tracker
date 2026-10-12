@@ -148,6 +148,18 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     assert.equal(listRes.status, 200);
     assert.equal(listRes.body.length, 1);
 
+    const viewRes = await request(`/api/documents/${docId}/view`);
+    assert.equal(viewRes.status, 200);
+    assert.equal((viewRes.headers.get('content-disposition') || '').includes('inline'), true);
+    assert.equal(viewRes.body.includes('%PDF-1.4'), true);
+
+    const updRes = await request(`/api/documents/${docId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ version_tag: 'v2.0', label: 'CV Alternance Aero v2' })
+    });
+    assert.equal(updRes.status, 200);
+    assert.equal(updRes.body.version_tag, 'v2.0');
+
     const dlRes = await request(`/api/documents/${docId}/download`);
     assert.equal(dlRes.status, 200);
     assert.equal(dlRes.body.includes('%PDF-1.4'), true);

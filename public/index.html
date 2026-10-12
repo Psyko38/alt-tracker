@@ -484,16 +484,17 @@
     </div>
   </div>
 
-  <!-- ==================== M3 Dialog: Add Document (CV / LM) ==================== -->
+  <!-- ==================== M3 Dialog: Add / Edit Document (CV / LM) ==================== -->
   <div class="m3-dialog-backdrop" id="doc-dialog-backdrop">
     <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(540px, 100%);">
       <div class="m3-dialog-header">
-        <h2 class="m3-dialog-title">Ajouter un CV ou Document</h2>
+        <h2 class="m3-dialog-title" id="doc-dialog-title">Ajouter un CV ou Document</h2>
         <button class="m3-icon-btn" id="btn-close-doc-dialog">
           <span class="material-symbols-rounded">close</span>
         </button>
       </div>
       <form id="document-form" class="m3-dialog-body">
+        <input type="hidden" id="doc-id" />
         <div class="m3-field">
           <label for="doc-label">Nom du document *</label>
           <input type="text" id="doc-label" class="m3-input" placeholder="Ex: CV Alternance Développeur Fullstack" required />
@@ -514,8 +515,8 @@
           </div>
         </div>
         <div class="m3-field">
-          <label for="doc-file">Fichier local (PDF, DOCX, Image — optionnel)</label>
-          <input type="file" id="doc-file" class="m3-input" accept=".pdf,.doc,.docx,.png,.jpg" />
+          <label for="doc-file">Fichier local (PDF, Image, DOCX — optionnel)</label>
+          <input type="file" id="doc-file" class="m3-input" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx" />
         </div>
         <div class="m3-field">
           <label for="doc-url">Lien externe (Canva, Google Drive, Notion, GitHub — optionnel)</label>
@@ -527,9 +528,40 @@
         </div>
         <div class="m3-dialog-actions">
           <button type="button" class="m3-btn m3-btn-text" id="btn-cancel-doc-dialog">Annuler</button>
-          <button type="submit" class="m3-btn m3-btn-filled">Ajouter à la bibliothèque</button>
+          <button type="submit" class="m3-btn m3-btn-filled" id="btn-submit-doc-dialog">Enregistrer</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ==================== M3 Dialog: In-Page Document Viewer ==================== -->
+  <div class="m3-dialog-backdrop" id="doc-preview-backdrop">
+    <div class="m3-dialog m3-doc-viewer-dialog" role="dialog" aria-modal="true" aria-labelledby="doc-preview-title">
+      <div class="m3-dialog-header">
+        <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+          <div class="m3-brand-icon" style="width: 40px; height: 40px; flex-shrink: 0;">
+            <span class="material-symbols-rounded">visibility</span>
+          </div>
+          <div style="min-width: 0;">
+            <h2 class="m3-dialog-title" id="doc-preview-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Aperçu du document</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);" id="doc-preview-subtitle"></p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+          <a href="#" target="_blank" rel="noopener" class="m3-btn m3-btn-tonal m3-btn-sm" id="doc-preview-newtab">
+            <span class="material-symbols-rounded" style="font-size: 17px;">open_in_new</span>
+            <span>Nouvel onglet</span>
+          </a>
+          <a href="#" download class="m3-btn m3-btn-outlined m3-btn-sm" id="doc-preview-download">
+            <span class="material-symbols-rounded" style="font-size: 17px;">download</span>
+            <span>Télécharger</span>
+          </a>
+          <button class="m3-icon-btn" id="btn-close-doc-preview" title="Fermer l’aperçu">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+      </div>
+      <div class="m3-doc-viewer-body" id="doc-preview-body"></div>
     </div>
   </div>
 

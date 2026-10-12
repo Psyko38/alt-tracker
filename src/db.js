@@ -588,6 +588,92 @@ function createDatabase(customDbPath) {
     return res.changes > 0;
   }
 
+  function buildSamplePdfBuffer(title, version, notes) {
+    const cleanAscii = (str) =>
+      String(str || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[()\\]/g, '')
+        .replace(/[^\x20-\x7E]/g, ' ');
+
+    const t = cleanAscii(title || 'Document Candidature');
+    const v = cleanAscii(version || 'v1.0');
+    const n = cleanAscii(notes || '');
+
+    const streamContent = [
+      'BT',
+      '/F1 20 Tf',
+      '50 760 Td',
+      `(${t}) Tj`,
+      '/F1 12 Tf',
+      '0 -28 Td',
+      `(Version : ${v}  |  Alt-Tracker - Apercu du document) Tj`,
+      '0 -32 Td',
+      '/F1 11 Tf',
+      `(${n}) Tj`,
+      '0 -36 Td',
+      '(------------------------------------------------------------------------) Tj',
+      '0 -26 Td',
+      '/F1 13 Tf',
+      '(Competences & Points Cles mis en avant) Tj',
+      '0 -22 Td',
+      '/F1 11 Tf',
+      '(- Developpement Fullstack JavaScript : Node.js, Express, SQLite, API REST) Tj',
+      '0 -18 Td',
+      '(- Architecture Frontend : Google Material Design 3.0 (Material You), UI/UX) Tj',
+      '0 -18 Td',
+      '(- Qualite logicielle : Tests automatises, Git, Integration Continue) Tj',
+      '0 -36 Td',
+      '/F1 10 Tf',
+      '(Astuce : Cliquez sur "Modifier" sur la carte du document pour televerser votre propre PDF.) Tj',
+      'ET'
+    ].join('\n');
+
+    const objects = [
+      '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+      '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+      '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n',
+      '4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+      `5 0 obj\n<< /Length ${Buffer.byteLength(streamContent, 'utf8')} >>\nstream\n${streamContent}\nendstream\nendobj\n`
+    ];
+
+    let pdf = '%PDF-1.4\n';
+    const offsets = [0];
+    for (const obj of objects) {
+      offsets.push(Buffer.byteLength(pdf, 'utf8'));
+      pdf += obj;
+    }
+    const xrefOffset = Buffer.byteLength(pdf, 'utf8');
+    pdf += `xref\n0 ${objects.length + 1}\n`;
+    pdf += '0000000000 65535 f \n';
+    for (let i = 1; i < offsets.length; i++) {
+      pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+    return Buffer.from(pdf, 'utf8');
+  }
+
+  function ensureDocumentFiles() {
+    if (process.env.SEED_SAMPLE_DATA === 'false') return;
+    const docs = db.prepare('SELECT * FROM documents').all();
+    for (const doc of docs) {
+      const existingPath = doc.stored_name ? path.join(uploadsDir, doc.stored_name) : '';
+      const fileMissing = !doc.stored_name || !fs.existsSync(existingPath);
+      if (fileMissing && doc.file_name && doc.file_name.toLowerCase().endsWith('.pdf')) {
+        const safeBase = path.basename(doc.file_name).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const storedName = `sample_${doc.id}_${safeBase}`;
+        const fullPath = path.join(uploadsDir, storedName);
+        const buf = buildSamplePdfBuffer(doc.label, doc.version_tag, doc.notes);
+        fs.writeFileSync(fullPath, buf);
+        db.prepare(`
+          UPDATE documents
+          SET stored_name = ?, mime_type = 'application/pdf', file_size = ?
+          WHERE id = ?
+        `).run(storedName, buf.length, doc.id);
+      }
+    }
+  }
+
   function listDocuments() {
     const docs = db.prepare(`
       SELECT
@@ -643,6 +729,55 @@ function createDatabase(customDbPath) {
     );
 
     return getDocumentById(Number(res.lastInsertRowid));
+  }
+
+  function updateDocument(id, docData) {
+    const existing = getDocumentById(id);
+    if (!existing) return null;
+
+    let storedName = existing.stored_name;
+    let fileName = existing.file_name;
+    let mimeType = existing.mime_type;
+    let fileSize = existing.file_size;
+
+    if (docData.file_base64 && docData.file_name) {
+      if (existing.stored_name) {
+        const oldPath = path.join(uploadsDir, existing.stored_name);
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
+      const safeBase = path.basename(docData.file_name).replace(/[^a-zA-Z0-9._-]/g, '_');
+      storedName = `${Date.now()}_${safeBase}`;
+      const filePath = path.join(uploadsDir, storedName);
+      const base64Clean = docData.file_base64.includes(',')
+        ? docData.file_base64.split(',')[1]
+        : docData.file_base64;
+      const buffer = Buffer.from(base64Clean, 'base64');
+      fs.writeFileSync(filePath, buffer);
+      fileName = docData.file_name;
+      mimeType = docData.mime_type || 'application/pdf';
+      fileSize = buffer.length;
+    }
+
+    db.prepare(`
+      UPDATE documents SET
+        label = ?, doc_type = ?, version_tag = ?,
+        file_name = ?, stored_name = ?, mime_type = ?, file_size = ?,
+        external_url = ?, notes = ?
+      WHERE id = ?
+    `).run(
+      docData.label !== undefined ? docData.label.trim() : existing.label,
+      docData.doc_type !== undefined ? docData.doc_type : existing.doc_type,
+      docData.version_tag !== undefined ? docData.version_tag : existing.version_tag,
+      fileName,
+      storedName,
+      mimeType,
+      fileSize,
+      docData.external_url !== undefined ? docData.external_url : existing.external_url,
+      docData.notes !== undefined ? docData.notes : existing.notes,
+      Number(id)
+    );
+
+    return getDocumentById(Number(id));
   }
 
   function deleteDocument(id) {
@@ -878,6 +1013,7 @@ function createDatabase(customDbPath) {
   }
 
   seedIfEmpty();
+  ensureDocumentFiles();
 
   return {
     db,
@@ -892,6 +1028,7 @@ function createDatabase(customDbPath) {
     listDocuments,
     getDocumentById,
     createDocument,
+    updateDocument,
     deleteDocument,
     getStats,
     exportCsv,
