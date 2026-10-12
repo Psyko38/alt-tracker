@@ -88,6 +88,16 @@ function createDatabase(customDbPath) {
       event_date TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS ai_settings (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      base_url TEXT NOT NULL DEFAULT 'https://api.openai.com/v1',
+      api_key TEXT NOT NULL DEFAULT '',
+      model TEXT NOT NULL DEFAULT 'gpt-4o-mini',
+      candidate_name TEXT NOT NULL DEFAULT 'Matteo',
+      candidate_profile TEXT NOT NULL DEFAULT 'Développeur Fullstack JavaScript / Node.js, orienté architecture moderne, bases de données SQL et interfaces Google Material Design 3.',
+      updated_at TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
     CREATE INDEX IF NOT EXISTS idx_applications_type ON applications(type);
     CREATE INDEX IF NOT EXISTS idx_applications_followup ON applications(follow_up_date);
@@ -588,46 +598,87 @@ function createDatabase(customDbPath) {
     return res.changes > 0;
   }
 
-  function buildSamplePdfBuffer(title, version, notes) {
+  function buildSamplePdfBuffer(title, version, notes, fullBodyText = '') {
     const cleanAscii = (str) =>
       String(str || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['’]/g, "'")
         .replace(/[()\\]/g, '')
         .replace(/[^\x20-\x7E]/g, ' ');
+
+    const wrapLines = (text, maxLen = 82) => {
+      const paragraphs = String(text || '').split(/\r?\n/);
+      const out = [];
+      for (const p of paragraphs) {
+        const cleanP = cleanAscii(p).trim();
+        if (!cleanP) {
+          out.push('');
+          continue;
+        }
+        const words = cleanP.split(/\s+/);
+        let current = '';
+        for (const w of words) {
+          if ((current + ' ' + w).trim().length > maxLen) {
+            if (current) out.push(current);
+            current = w;
+          } else {
+            current = current ? `${current} ${w}` : w;
+          }
+        }
+        if (current) out.push(current);
+      }
+      return out;
+    };
 
     const t = cleanAscii(title || 'Document Candidature');
     const v = cleanAscii(version || 'v1.0');
     const n = cleanAscii(notes || '');
 
-    const streamContent = [
+    const lines = [
       'BT',
-      '/F1 20 Tf',
-      '50 760 Td',
+      '/F1 18 Tf',
+      '50 775 Td',
       `(${t}) Tj`,
-      '/F1 12 Tf',
-      '0 -28 Td',
-      `(Version : ${v}  |  Alt-Tracker - Apercu du document) Tj`,
-      '0 -32 Td',
       '/F1 11 Tf',
-      `(${n}) Tj`,
-      '0 -36 Td',
-      '(------------------------------------------------------------------------) Tj',
-      '0 -26 Td',
-      '/F1 13 Tf',
-      '(Competences & Points Cles mis en avant) Tj',
       '0 -22 Td',
-      '/F1 11 Tf',
-      '(- Developpement Fullstack JavaScript : Node.js, Express, SQLite, API REST) Tj',
-      '0 -18 Td',
-      '(- Architecture Frontend : Google Material Design 3.0 (Material You), UI/UX) Tj',
-      '0 -18 Td',
-      '(- Qualite logicielle : Tests automatises, Git, Integration Continue) Tj',
-      '0 -36 Td',
-      '/F1 10 Tf',
-      '(Astuce : Cliquez sur "Modifier" sur la carte du document pour televerser votre propre PDF.) Tj',
-      'ET'
-    ].join('\n');
+      `(Version : ${v}  |  Alt-Tracker Document) Tj`,
+      '0 -20 Td',
+      '(--------------------------------------------------------------------------------) Tj'
+    ];
+
+    if (fullBodyText && fullBodyText.trim()) {
+      lines.push('/F1 10.5 Tf');
+      lines.push('0 -10 Td');
+      const wrapped = wrapLines(fullBodyText, 84).slice(0, 38);
+      for (const wl of wrapped) {
+        lines.push('0 -16 Td');
+        lines.push(`(${wl}) Tj`);
+      }
+    } else {
+      lines.push('0 -24 Td');
+      lines.push('/F1 11 Tf');
+      for (const nl of wrapLines(n, 80).slice(0, 4)) {
+        lines.push(`(${nl}) Tj`);
+        lines.push('0 -16 Td');
+      }
+      lines.push('0 -16 Td');
+      lines.push('/F1 13 Tf');
+      lines.push('(Competences & Points Cles mis en avant) Tj');
+      lines.push('0 -22 Td');
+      lines.push('/F1 11 Tf');
+      lines.push('(- Developpement Fullstack JavaScript : Node.js, Express, SQLite, API REST) Tj');
+      lines.push('0 -18 Td');
+      lines.push('(- Architecture Frontend : Google Material Design 3.0 (Material You), UI/UX) Tj');
+      lines.push('0 -18 Td');
+      lines.push('(- Qualite logicielle : Tests automatises, Git, Integration Continue) Tj');
+      lines.push('0 -36 Td');
+      lines.push('/F1 10 Tf');
+      lines.push('(Astuce : Cliquez sur "Modifier" sur la carte du document pour televerser votre propre PDF.) Tj');
+    }
+
+    lines.push('ET');
+    const streamContent = lines.join('\n');
 
     const objects = [
       '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
@@ -695,6 +746,7 @@ function createDatabase(customDbPath) {
   function createDocument(docData) {
     const now = nowIso();
     let storedName = '';
+    let fileName = docData.file_name || '';
     let fileSize = 0;
 
     if (docData.file_base64 && docData.file_name) {
@@ -705,6 +757,19 @@ function createDatabase(customDbPath) {
         ? docData.file_base64.split(',')[1]
         : docData.file_base64;
       const buffer = Buffer.from(base64Clean, 'base64');
+      fs.writeFileSync(filePath, buffer);
+      fileSize = buffer.length;
+    } else if (docData.generate_pdf_text) {
+      const safeLabel = (docData.label || 'document').replace(/[^a-zA-Z0-9_-]/g, '_');
+      fileName = fileName || `${safeLabel}.pdf`;
+      storedName = `${Date.now()}_${fileName}`;
+      const filePath = path.join(uploadsDir, storedName);
+      const buffer = buildSamplePdfBuffer(
+        docData.label,
+        docData.version_tag || 'IA',
+        docData.notes || '',
+        docData.generate_pdf_text
+      );
       fs.writeFileSync(filePath, buffer);
       fileSize = buffer.length;
     }
@@ -719,7 +784,7 @@ function createDatabase(customDbPath) {
       docData.doc_type || 'cv',
       docData.version_tag || 'v1.0',
       docData.target_type || 'alternance',
-      docData.file_name || '',
+      fileName,
       storedName,
       docData.mime_type || 'application/pdf',
       fileSize,
@@ -791,6 +856,52 @@ function createDatabase(customDbPath) {
     }
     const res = db.prepare('DELETE FROM documents WHERE id = ?').run(Number(id));
     return res.changes > 0;
+  }
+
+  function getAiSettings() {
+    let row = db.prepare('SELECT * FROM ai_settings WHERE id = 1').get();
+    if (!row) {
+      const now = nowIso();
+      db.prepare(`
+        INSERT INTO ai_settings (id, base_url, api_key, model, candidate_name, candidate_profile, updated_at)
+        VALUES (1, ?, ?, ?, ?, ?, ?)
+      `).run(
+        process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+        process.env.OPENAI_API_KEY || '',
+        process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        'Matteo',
+        'Développeur Fullstack JavaScript / Node.js, orienté architecture web moderne, SQLite/SQL et interfaces Google Material Design 3.',
+        now
+      );
+      row = db.prepare('SELECT * FROM ai_settings WHERE id = 1').get();
+    }
+    return {
+      base_url: row.base_url || process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+      api_key: row.api_key || process.env.OPENAI_API_KEY || '',
+      model: row.model || process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      candidate_name: row.candidate_name || 'Matteo',
+      candidate_profile: row.candidate_profile || '',
+      has_api_key: Boolean((row.api_key && row.api_key.trim()) || process.env.OPENAI_API_KEY),
+      updated_at: row.updated_at
+    };
+  }
+
+  function saveAiSettings(data = {}) {
+    const current = getAiSettings();
+    const now = nowIso();
+    const nextBaseUrl = data.base_url !== undefined ? data.base_url.trim().replace(/\/+$/, '') : current.base_url;
+    const nextApiKey = data.api_key !== undefined && data.api_key !== '••••••••' ? data.api_key.trim() : current.api_key;
+    const nextModel = data.model !== undefined ? data.model.trim() : current.model;
+    const nextName = data.candidate_name !== undefined ? data.candidate_name.trim() : current.candidate_name;
+    const nextProfile = data.candidate_profile !== undefined ? data.candidate_profile.trim() : current.candidate_profile;
+
+    db.prepare(`
+      UPDATE ai_settings SET
+        base_url = ?, api_key = ?, model = ?, candidate_name = ?, candidate_profile = ?, updated_at = ?
+      WHERE id = 1
+    `).run(nextBaseUrl, nextApiKey, nextModel, nextName, nextProfile, now);
+
+    return getAiSettings();
   }
 
   function getStats() {
@@ -1030,6 +1141,8 @@ function createDatabase(customDbPath) {
     createDocument,
     updateDocument,
     deleteDocument,
+    getAiSettings,
+    saveAiSettings,
     getStats,
     exportCsv,
     importApplications

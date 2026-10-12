@@ -62,6 +62,13 @@
           </span>
           <span class="m3-nav-label">CV & LM</span>
         </button>
+
+        <button class="m3-nav-item" data-view="agent">
+          <span class="m3-nav-pill">
+            <span class="material-symbols-rounded">auto_awesome</span>
+          </span>
+          <span class="m3-nav-label">Agent IA</span>
+        </button>
       </nav>
 
       <div class="m3-nav-footer">
@@ -289,6 +296,208 @@
           </button>
         </div>
         <div class="m3-docs-grid" id="documents-grid"></div>
+      </section>
+
+      <!-- ==================== VIEW 6: AI AGENT STUDIO ==================== -->
+      <section class="m3-view-section" id="view-agent">
+        <div class="m3-ai-studio">
+          <!-- Left: Main Conversational Copilot Studio -->
+          <div class="m3-ai-chat-surface">
+            <!-- Top Studio Bar -->
+            <div class="m3-ai-studio-bar">
+              <div class="m3-ai-brand-cluster">
+                <div class="m3-ai-orb">
+                  <span class="material-symbols-rounded filled">auto_awesome</span>
+                </div>
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <h2 class="m3-ai-studio-title">Alt-Tracker Intelligence</h2>
+                    <button type="button" class="m3-ai-model-pill" id="btn-open-ai-settings" title="Configurer le modèle OpenAI / Groq / Mistral / Ollama">
+                      <span class="m3-ai-status-dot" id="ai-status-dot"></span>
+                      <span id="ai-provider-badge">Copilote Autonome · Actif</span>
+                      <span class="material-symbols-rounded" style="font-size: 15px;">tune</span>
+                    </button>
+                  </div>
+                  <p class="m3-ai-studio-sub">
+                    Agent connecté en temps réel à votre base SQLite, vos relances et votre générateur de lettres PDF
+                  </p>
+                </div>
+              </div>
+
+              <div class="m3-ai-header-controls">
+                <select class="m3-select" id="ai-focus-app" aria-label="Candidature ciblée">
+                  <option value="">Toutes mes candidatures (Global)</option>
+                </select>
+                <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" id="btn-open-ai-settings-secondary" title="Paramètres OpenAI & Profil">
+                  <span class="material-symbols-rounded" style="font-size: 17px;">settings</span>
+                  <span>Modèle & Profil</span>
+                </button>
+                <button type="button" class="m3-icon-btn" id="btn-ai-clear-chat" title="Nouvelle conversation">
+                  <span class="material-symbols-rounded">restart_alt</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Conversational Stream (Hero Welcome + Messages) -->
+            <div class="m3-ai-messages" id="ai-chat-messages" aria-live="polite">
+              <div class="m3-ai-hero">
+                <div class="m3-ai-hero-badge">
+                  <span class="material-symbols-rounded filled">auto_awesome</span>
+                  <span>Material You AI Copilot · Function Calling SQLite</span>
+                </div>
+                <h3 class="m3-ai-hero-heading">Sur quelle candidature travaille-t-on aujourd’hui ?</h3>
+                <p class="m3-ai-hero-desc">
+                  Sélectionnez une action rapide ci-dessous ou posez votre question en langage naturel : je peux analyser votre pipeline, rédiger vos relances, générer une lettre de motivation en PDF ou créer une candidature.
+                </p>
+
+                <div class="m3-ai-bento-prompts">
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Analyse mon pipeline de candidatures, mes statistiques et dis-moi quelles relances sont prioritaires aujourd'hui.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">monitoring</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Audit & Priorités du Pipeline</strong>
+                      <span>Analyse vos taux de retour, CV performants et relances urgentes du jour</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Rédige un email de relance percutant et un message LinkedIn pour la candidature sélectionnée (ou la plus urgente).">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">forward_to_inbox</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Email & LinkedIn de Relance</strong>
+                      <span>Rédige un mail recruteur et une approche LinkedIn prêts à envoyer</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Génère une lettre de motivation sur-mesure pour la candidature sélectionnée et enregistre-la automatiquement en PDF dans mes documents CV & LM.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">picture_as_pdf</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Lettre de Motivation PDF</strong>
+                      <span>Rédige et génère automatiquement un document PDF dans votre bibliothèque</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+
+                  <button type="button" class="m3-ai-bento-card" data-prompt="Prépare-moi à l'entretien (questions techniques, questions RH, pitch et questions à poser) pour la candidature sélectionnée.">
+                    <div class="m3-ai-bento-icon">
+                      <span class="material-symbols-rounded">psychology</span>
+                    </div>
+                    <div class="m3-ai-bento-text">
+                      <strong>Coach d’Entretien Tech & RH</strong>
+                      <span>Questions probables, pitch personnalisé et questions stratégiques à poser</span>
+                    </div>
+                    <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Floating M3 Pill Dock Composer -->
+            <div class="m3-ai-dock">
+              <div class="m3-ai-quick-bar" id="ai-quick-prompts">
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Analyse mon pipeline de candidatures, mes statistiques et dis-moi quelles relances sont prioritaires aujourd'hui.">
+                  <span class="material-symbols-rounded">monitoring</span>
+                  <span>Audit pipeline</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Rédige un email de relance percutant et un message LinkedIn pour la candidature sélectionnée (ou la plus urgente).">
+                  <span class="material-symbols-rounded">forward_to_inbox</span>
+                  <span>Rédiger une relance</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Génère une lettre de motivation sur-mesure pour la candidature sélectionnée et enregistre-la automatiquement en PDF dans mes documents CV & LM.">
+                  <span class="material-symbols-rounded">picture_as_pdf</span>
+                  <span>Générer Lettre PDF</span>
+                </button>
+                <button type="button" class="m3-ai-suggestion-pill" data-prompt="Prépare-moi à l'entretien (questions techniques, questions RH, pitch et questions à poser) pour la candidature sélectionnée.">
+                  <span class="material-symbols-rounded">psychology</span>
+                  <span>Simuler entretien</span>
+                </button>
+              </div>
+
+              <form class="m3-ai-composer-pill" id="ai-chat-form">
+                <span class="material-symbols-rounded m3-ai-composer-icon">auto_awesome</span>
+                <input
+                  type="text"
+                  class="m3-ai-composer-input"
+                  id="ai-chat-input"
+                  placeholder="Posez une question à votre copilote ou écrivez « Ajoute une alternance chez Airbus à Toulouse »..."
+                  autocomplete="off"
+                  required
+                />
+                <button type="submit" class="m3-ai-send-btn" id="btn-ai-send" title="Envoyer au Copilote IA">
+                  <span>Envoyer</span>
+                  <span class="material-symbols-rounded" style="font-size: 18px;">arrow_upward</span>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Right: Live Focus Context + Smart Job Offer Studio -->
+          <div class="m3-ai-side-stack">
+            <!-- Active Application Focus Card -->
+            <div class="m3-ai-side-card" id="ai-context-card">
+              <div class="m3-ai-side-header">
+                <div class="m3-ai-side-icon">
+                  <span class="material-symbols-rounded">target</span>
+                </div>
+                <div>
+                  <h3 class="m3-ai-side-title">Candidature Ciblée</h3>
+                  <p class="m3-ai-side-sub">Actions IA rapides en 1 clic</p>
+                </div>
+              </div>
+              <div id="ai-context-body" class="m3-ai-context-body"></div>
+            </div>
+
+            <!-- Smart Job Parser Studio Card -->
+            <div class="m3-ai-side-card m3-ai-extractor-card">
+              <div class="m3-ai-side-header">
+                <div class="m3-ai-side-icon tertiary">
+                  <span class="material-symbols-rounded">content_paste_go</span>
+                </div>
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                    <h3 class="m3-ai-side-title">Smart Job Parser IA</h3>
+                    <button type="button" class="m3-ai-sample-pill" id="btn-ai-sample-offer">
+                      <span class="material-symbols-rounded" style="font-size: 14px;">science</span>
+                      <span>Tester un exemple</span>
+                    </button>
+                  </div>
+                  <p class="m3-ai-side-sub">Transformez une offre brute en fiche structurée</p>
+                </div>
+              </div>
+
+              <div class="m3-ai-extractor-box">
+                <textarea
+                  id="ai-extract-textarea"
+                  class="m3-ai-extractor-textarea"
+                  placeholder="Collez ici le texte d'une annonce LinkedIn, Welcome to the Jungle ou Indeed... L'IA détecte automatiquement l'entreprise, le poste, le contrat, la ville, le salaire et le rythme."
+                ></textarea>
+                <div class="m3-ai-extractor-tags">
+                  <span><span class="material-symbols-rounded">apartment</span> Entreprise</span>
+                  <span><span class="material-symbols-rounded">work</span> Contrat</span>
+                  <span><span class="material-symbols-rounded">location_on</span> Ville & Mode</span>
+                  <span><span class="material-symbols-rounded">payments</span> Salaire & Rythme</span>
+                </div>
+              </div>
+
+              <div class="m3-ai-extractor-actions">
+                <button type="button" class="m3-btn m3-btn-tonal" id="btn-ai-extract-prefill" style="flex: 1; justify-content: center;">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">edit_square</span>
+                  <span>Extraire & Vérifier</span>
+                </button>
+                <button type="button" class="m3-btn m3-btn-filled" id="btn-ai-extract-create" style="flex: 1.15; justify-content: center;">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">bolt</span>
+                  <span>Créer en 1 clic</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
@@ -602,6 +811,82 @@
           <span>Lancer l’importation</span>
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- ==================== M3 Dialog: AI Model & Candidate Profile Settings ==================== -->
+  <div class="m3-dialog-backdrop" id="ai-settings-backdrop">
+    <div class="m3-dialog" role="dialog" aria-modal="true" style="width: min(620px, 100%);">
+      <div class="m3-dialog-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="m3-ai-orb" style="width: 38px; height: 38px;">
+            <span class="material-symbols-rounded filled" style="font-size: 20px;">tune</span>
+          </div>
+          <div>
+            <h2 class="m3-dialog-title">Modèle IA & Profil Candidat</h2>
+            <p style="font-size: 12.5px; color: var(--md-sys-color-on-surface-variant);">
+              Compatible OpenAI, Groq, Mistral, OpenRouter, Gemini & Ollama local
+            </p>
+          </div>
+        </div>
+        <button class="m3-icon-btn" id="btn-close-ai-settings" title="Fermer">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+
+      <form id="ai-settings-form" class="m3-dialog-body">
+        <div class="m3-form-section-title">Fournisseur OpenAI Compatible (Pré-réglages rapides)</div>
+        <div class="m3-ai-preset-bar" id="ai-provider-presets">
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.openai.com/v1" data-model="gpt-4o-mini">
+            <span class="material-symbols-rounded" style="font-size: 15px;">bolt</span> OpenAI
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.groq.com/openai/v1" data-model="llama-3.3-70b-versatile">
+            <span class="material-symbols-rounded" style="font-size: 15px;">speed</span> Groq (Ultra-rapide)
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://api.mistral.ai/v1" data-model="mistral-small-latest">
+            <span class="material-symbols-rounded" style="font-size: 15px;">air</span> Mistral AI
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="https://openrouter.ai/api/v1" data-model="openai/gpt-4o-mini">
+            <span class="material-symbols-rounded" style="font-size: 15px;">hub</span> OpenRouter
+          </button>
+          <button type="button" class="m3-ai-preset-chip" data-base="http://localhost:11434/v1" data-model="llama3.2">
+            <span class="material-symbols-rounded" style="font-size: 15px;">terminal</span> Ollama (Local)
+          </button>
+        </div>
+
+        <div class="m3-form-grid">
+          <div class="m3-field full-width">
+            <label for="ai-base-url">Base URL de l’API (`/v1`)</label>
+            <input type="url" id="ai-base-url" class="m3-input" placeholder="https://api.openai.com/v1" required />
+          </div>
+          <div class="m3-field">
+            <label for="ai-api-key">Clé API (Bearer Token)</label>
+            <input type="password" id="ai-api-key" class="m3-input" placeholder="sk-... (vide = mode autonome)" autocomplete="off" />
+          </div>
+          <div class="m3-field">
+            <label for="ai-model">Modèle cible</label>
+            <input type="text" id="ai-model" class="m3-input" placeholder="gpt-4o-mini" required />
+          </div>
+        </div>
+
+        <div class="m3-form-section-title" style="margin-top: 6px;">Personnalisation Candidat (Relances & Lettres PDF)</div>
+        <div class="m3-field">
+          <label for="ai-candidate-name">Votre Prénom & Nom (signature automatique)</label>
+          <input type="text" id="ai-candidate-name" class="m3-input" placeholder="Matteo" />
+        </div>
+        <div class="m3-field">
+          <label for="ai-candidate-profile">Votre profil, école, stack technique & points forts</label>
+          <textarea id="ai-candidate-profile" class="m3-textarea" style="min-height: 82px;" placeholder="Ex: Développeur Fullstack JavaScript / Node.js, orienté architecture web moderne, SQLite/SQL et interfaces Google Material Design 3."></textarea>
+        </div>
+
+        <div class="m3-dialog-actions" style="padding: 12px 0 0; margin-top: 4px;">
+          <button type="button" class="m3-btn m3-btn-text" id="btn-ai-clear-key">Mode autonome (sans clé)</button>
+          <button type="submit" class="m3-btn m3-btn-filled">
+            <span class="material-symbols-rounded" style="font-size: 18px;">check</span>
+            <span>Enregistrer la configuration</span>
+          </button>
+        </div>
+      </form>
     </div>
   </div>
 

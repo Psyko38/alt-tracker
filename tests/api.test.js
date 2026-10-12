@@ -200,6 +200,73 @@ describe('Alt-Tracker REST API & SQLite Integration Tests', () => {
     assert.equal(statsRes.body.byType.stage, 1);
   });
 
+  test('GET & PUT /api/ai/settings manages OpenAI-compatible AI settings and masks API key', async () => {
+    const getRes = await request('/api/ai/settings');
+    assert.equal(getRes.status, 200);
+    assert.equal(typeof getRes.body.base_url, 'string');
+    assert.equal(getRes.body.candidate_name, 'Matteo');
+
+    const putRes = await request('/api/ai/settings', {
+      method: 'PUT',
+      body: JSON.stringify({
+        base_url: 'https://api.groq.com/openai/v1',
+        model: 'llama-3.3-70b-versatile',
+        candidate_name: 'Matteo Dev'
+      })
+    });
+    assert.equal(putRes.status, 200);
+    assert.equal(putRes.body.base_url, 'https://api.groq.com/openai/v1');
+    assert.equal(putRes.body.model, 'llama-3.3-70b-versatile');
+    assert.equal(putRes.body.candidate_name, 'Matteo Dev');
+  });
+
+  test('POST /api/ai/chat generates follow-up, cover letter PDF, and interview coaching autonomously', async () => {
+    const followUpRes = await request('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        focusAppId: createdAppId,
+        messages: [{ role: 'user', content: 'Rédige un email de relance pour Airbus' }]
+      })
+    });
+    assert.equal(followUpRes.status, 200);
+    assert.equal(followUpRes.body.reply.includes('Airbus'), true);
+
+    const clRes = await request('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        focusAppId: createdAppId,
+        messages: [{ role: 'user', content: 'Génère une lettre de motivation PDF pour Airbus' }]
+      })
+    });
+    assert.equal(clRes.status, 200);
+    assert.equal(Boolean(clRes.body.documentCreated), true);
+    assert.equal(clRes.body.documentCreated.doc_type, 'cover_letter');
+
+    // Clean up generated PDF
+    await request(`/api/documents/${clRes.body.documentCreated.id}`, { method: 'DELETE' });
+  });
+
+  test('POST /api/ai/extract-job parses raw job offer text and optionally creates application', async () => {
+    const rawOffer = [
+      'Entreprise : Doctolib',
+      'Poste : Alternance Développeur Fullstack Node.js',
+      'Lieu : Paris (Hybride)',
+      'Salaire : 1 800 € / mois',
+      'Rythme : 3 semaines entreprise / 1 semaine école',
+      'Contact : jobs@doctolib.example.com'
+    ].join('\n');
+
+    const extractRes = await request('/api/ai/extract-job', {
+      method: 'POST',
+      body: JSON.stringify({ text: rawOffer, autoCreate: true })
+    });
+    assert.equal(extractRes.status, 200);
+    assert.equal(extractRes.body.extracted.company, 'Doctolib');
+    assert.equal(extractRes.body.extracted.type, 'alternance');
+    assert.equal(Boolean(extractRes.body.created), true);
+    assert.equal(extractRes.body.created.company, 'Doctolib');
+  });
+
   test('DELETE /api/applications/:id removes application', async () => {
     const delRes = await request(`/api/applications/${createdAppId}`, { method: 'DELETE' });
     assert.equal(delRes.status, 200);

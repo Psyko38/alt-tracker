@@ -45,6 +45,10 @@ const VIEW_META = {
   documents: {
     title: 'Bibliothèque CV & Lettres',
     subtitle: 'Gérez vos versions de CV et mesurez leur taux de conversion en entretien'
+  },
+  agent: {
+    title: 'Copilote IA & Extracteur d’Offres',
+    subtitle: 'Assistant OpenAI-compatible connecté à vos candidatures, relances et documents PDF'
   }
 };
 
@@ -54,6 +58,9 @@ const state = {
   stats: null,
   documents: [],
   activeAppId: null,
+  aiSettings: null,
+  aiMessages: [],
+  aiSending: false,
   filters: {
     type: 'all',
     status: 'all',
@@ -193,6 +200,7 @@ async function refreshAllData() {
 
     updateFollowUpBadge();
     populateCvDatalist();
+    populateAiFocusSelect();
     renderCurrentView();
 
     if (state.activeAppId) {
@@ -228,6 +236,22 @@ function populateCvDatalist() {
     .join('');
 }
 
+function populateAiFocusSelect() {
+  const sel = document.getElementById('ai-focus-app');
+  if (!sel) return;
+  const currentVal = sel.value;
+  const options = ['<option value="">Toutes mes candidatures (Global)</option>'];
+  state.applications.forEach((a) => {
+    const label = `${a.company} — ${a.role}`;
+    options.push(`<option value="${a.id}">${escapeHtml(label)}</option>`);
+  });
+  sel.innerHTML = options.join('');
+  if (currentVal && state.applications.some((a) => String(a.id) === String(currentVal))) {
+    sel.value = currentVal;
+  }
+  if (typeof sel._m3Sync === 'function') sel._m3Sync();
+}
+
 /* ==========================================================================
    View Switching
    ========================================================================== */
@@ -243,6 +267,11 @@ function switchView(viewName) {
     sec.classList.toggle('active', sec.id === `view-${viewName}`);
   });
 
+  const filterBar = document.querySelector('.m3-filter-bar');
+  if (filterBar) {
+    filterBar.style.display = (viewName === 'agent' || viewName === 'documents') ? 'none' : '';
+  }
+
   document.getElementById('view-title').textContent = VIEW_META[viewName].title;
   document.getElementById('view-subtitle').textContent = VIEW_META[viewName].subtitle;
 
@@ -255,6 +284,7 @@ function renderCurrentView() {
   renderListTable();
   renderFollowUpsView();
   renderDocumentsView();
+  renderAiContextCard();
 }
 
 /* ==========================================================================
@@ -950,6 +980,18 @@ async function openApplicationSheet(appId, showScrim = true) {
         <span class="material-symbols-rounded" style="font-size:16px;">schedule_send</span>
         Marquer relancé (+7j)
       </button>
+      <button class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${app.id}, 'followup')">
+        <span class="material-symbols-rounded" style="font-size:16px;">auto_awesome</span>
+        Relance IA
+      </button>
+      <button class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${app.id}, 'coach')">
+        <span class="material-symbols-rounded" style="font-size:16px;">psychology</span>
+        Coach IA
+      </button>
+      <button class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${app.id}, 'cover_letter')">
+        <span class="material-symbols-rounded" style="font-size:16px;">picture_as_pdf</span>
+        Lettre PDF IA
+      </button>
       ${linkedDoc ? `
         <button class="m3-btn m3-btn-filled m3-btn-sm" onclick="openDocumentPreview(${linkedDoc.id})">
           <span class="material-symbols-rounded" style="font-size:16px;">visibility</span>
@@ -1361,6 +1403,407 @@ function closeApplicationDialog() {
 }
 
 /* ==========================================================================
+   AI Agent Studio (Gemini-Inspired Copilot, Bento Hero & Smart Job Parser)
+   ========================================================================== */
+function formatAiMarkdown(text) {
+  let safe = escapeHtml(text || '');
+  safe = safe.replace(/```(?:\w+)?\n([\s\S]*?)```/g, (_m, code) => `<pre><code>${code.trim()}</code></pre>`);
+  safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+  safe = safe.replace(/^###\s+(.+)$/gm, '<strong style="font-size:15px; display:block; margin:8px 0 4px; color:var(--md-sys-color-primary);">$1</strong>');
+  safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  safe = safe.replace(/\n/g, '<br/>');
+  return safe;
+}
+
+function updateAiProviderBadge() {
+  const badge = document.getElementById('ai-provider-badge');
+  if (!badge || !state.aiSettings) return;
+  const isLocal = (state.aiSettings.base_url || '').includes('localhost') || (state.aiSettings.base_url || '').includes('127.0.0.1');
+  if (state.aiSettings.has_api_key || isLocal) {
+    badge.textContent = `OpenAI · ${state.aiSettings.model || 'gpt-4o-mini'}`;
+  } else {
+    badge.textContent = 'Copilote Autonome · Actif';
+  }
+}
+
+async function loadAiSettings() {
+  try {
+    const s = await apiFetch('/api/ai/settings');
+    state.aiSettings = s;
+    const baseInput = document.getElementById('ai-base-url');
+    const keyInput = document.getElementById('ai-api-key');
+    const modelInput = document.getElementById('ai-model');
+    const nameInput = document.getElementById('ai-candidate-name');
+    const profileInput = document.getElementById('ai-candidate-profile');
+
+    if (baseInput) baseInput.value = s.base_url || 'https://api.openai.com/v1';
+    if (keyInput) keyInput.value = s.api_key || '';
+    if (modelInput) modelInput.value = s.model || 'gpt-4o-mini';
+    if (nameInput) nameInput.value = s.candidate_name || 'Matteo';
+    if (profileInput) profileInput.value = s.candidate_profile || '';
+    updateAiProviderBadge();
+  } catch (err) {
+    console.warn('Impossible de charger les paramètres IA :', err.message);
+  }
+}
+
+function renderAiContextCard() {
+  const bodyEl = document.getElementById('ai-context-body');
+  if (!bodyEl) return;
+
+  const focusSelect = document.getElementById('ai-focus-app');
+  const selectedId = focusSelect && focusSelect.value ? Number(focusSelect.value) : null;
+
+  let targetApp = selectedId
+    ? state.applications.find((a) => Number(a.id) === selectedId)
+    : null;
+
+  const isAutoSelected = !targetApp;
+  if (!targetApp && state.stats && state.stats.urgentFollowUps && state.stats.urgentFollowUps.length > 0) {
+    targetApp = state.stats.urgentFollowUps[0];
+  }
+  if (!targetApp && state.applications.length > 0) {
+    targetApp = state.applications[0];
+  }
+
+  if (!targetApp) {
+    bodyEl.innerHTML = `
+      <div style="text-align:center; padding:12px 6px; color:var(--md-sys-color-on-surface-variant); font-size:13px;">
+        Aucune candidature dans la base. Utilisez le <strong>Smart Job Parser IA</strong> ci-dessous pour en créer une en 1 clic !
+      </div>
+    `;
+    return;
+  }
+
+  const sMeta = STATUS_META[targetApp.status] || STATUS_META.applied;
+  const tMeta = TYPE_META[targetApp.type] || TYPE_META.autre;
+
+  bodyEl.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;">
+      <div style="display:flex; gap:6px; align-items:center;">
+        <span class="m3-badge ${tMeta.cls}">${tMeta.label}</span>
+        <span class="m3-badge ${sMeta.cls}">${sMeta.label}</span>
+      </div>
+      <span style="font-size:11px; font-weight:700; color:var(--md-sys-color-primary);">
+        ${isAutoSelected ? '✨ Focus prioritaire auto' : '🎯 Focus sélectionné'}
+      </span>
+    </div>
+
+    <div>
+      <div style="font-size:16px; font-weight:800; color:var(--md-sys-color-on-surface);">
+        ${escapeHtml(targetApp.company)}
+      </div>
+      <div style="font-size:13px; color:var(--md-sys-color-on-surface-variant); margin-top:2px;">
+        ${escapeHtml(targetApp.role)}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:12px; color:var(--md-sys-color-on-surface-variant);">
+      <span>📍 ${escapeHtml(targetApp.location || 'Non précisé')}</span>
+      <span>📅 Relance : <strong>${formatDate(targetApp.follow_up_date)}</strong></span>
+    </div>
+
+    <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:4px; border-top:1px solid var(--md-sys-color-outline-variant);">
+      <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${targetApp.id}, 'followup')">
+        <span class="material-symbols-rounded" style="font-size:15px;">forward_to_inbox</span>
+        <span>Relance</span>
+      </button>
+      <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${targetApp.id}, 'cover_letter')">
+        <span class="material-symbols-rounded" style="font-size:15px;">picture_as_pdf</span>
+        <span>Lettre PDF</span>
+      </button>
+      <button type="button" class="m3-btn m3-btn-tonal m3-btn-sm" onclick="launchAiForApp(${targetApp.id}, 'coach')">
+        <span class="material-symbols-rounded" style="font-size:15px;">psychology</span>
+        <span>Coach IA</span>
+      </button>
+      <button type="button" class="m3-btn m3-btn-outlined m3-btn-sm" onclick="openApplicationSheet(${targetApp.id})" title="Voir les détails">
+        <span class="material-symbols-rounded" style="font-size:15px;">open_in_new</span>
+      </button>
+    </div>
+  `;
+}
+
+function getHeroHtml() {
+  const candidateName = (state.aiSettings && state.aiSettings.candidate_name) || 'Matteo';
+  return `
+    <div class="m3-ai-hero">
+      <div class="m3-ai-hero-badge">
+        <span class="material-symbols-rounded filled" style="font-size:16px;">auto_awesome</span>
+        <span>Material You AI Copilot · Connecté à SQLite</span>
+      </div>
+      <h3 class="m3-ai-hero-heading">Bonjour ${escapeHtml(candidateName)}, sur quelle candidature travaille-t-on ?</h3>
+      <p class="m3-ai-hero-desc">
+        Choisissez une action rapide ci-dessous ou écrivez votre demande : je peux analyser votre pipeline, rédiger vos relances, générer une lettre de motivation en PDF ou créer une candidature.
+      </p>
+
+      <div class="m3-ai-bento-prompts">
+        <button type="button" class="m3-ai-bento-card" data-prompt="Analyse mon pipeline de candidatures, mes statistiques et dis-moi quelles relances sont prioritaires aujourd'hui.">
+          <div class="m3-ai-bento-icon">
+            <span class="material-symbols-rounded">monitoring</span>
+          </div>
+          <div class="m3-ai-bento-text">
+            <strong>Audit & Priorités du Pipeline</strong>
+            <span>Analyse vos taux de retour, CV performants et relances urgentes du jour</span>
+          </div>
+          <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+        </button>
+
+        <button type="button" class="m3-ai-bento-card" data-prompt="Rédige un email de relance percutant et un message LinkedIn pour la candidature sélectionnée (ou la plus urgente).">
+          <div class="m3-ai-bento-icon">
+            <span class="material-symbols-rounded">forward_to_inbox</span>
+          </div>
+          <div class="m3-ai-bento-text">
+            <strong>Email & LinkedIn de Relance</strong>
+            <span>Rédige un mail recruteur et une approche LinkedIn prêts à envoyer</span>
+          </div>
+          <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+        </button>
+
+        <button type="button" class="m3-ai-bento-card" data-prompt="Génère une lettre de motivation sur-mesure pour la candidature sélectionnée et enregistre-la automatiquement en PDF dans mes documents CV & LM.">
+          <div class="m3-ai-bento-icon">
+            <span class="material-symbols-rounded">picture_as_pdf</span>
+          </div>
+          <div class="m3-ai-bento-text">
+            <strong>Lettre de Motivation PDF</strong>
+            <span>Rédige et génère automatiquement un document PDF dans votre bibliothèque</span>
+          </div>
+          <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+        </button>
+
+        <button type="button" class="m3-ai-bento-card" data-prompt="Prépare-moi à l'entretien (questions techniques, questions RH, pitch et questions à poser) pour la candidature sélectionnée.">
+          <div class="m3-ai-bento-icon">
+            <span class="material-symbols-rounded">psychology</span>
+          </div>
+          <div class="m3-ai-bento-text">
+            <strong>Coach d’Entretien Tech & RH</strong>
+            <span>Questions probables, pitch personnalisé et questions stratégiques à poser</span>
+          </div>
+          <span class="material-symbols-rounded m3-ai-bento-arrow">north_east</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderAiMessages() {
+  const container = document.getElementById('ai-chat-messages');
+  if (!container) return;
+
+  if (state.aiMessages.length === 0) {
+    container.innerHTML = getHeroHtml();
+    container.querySelectorAll('.m3-ai-bento-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        sendAiMessage(card.dataset.prompt);
+      });
+    });
+    return;
+  }
+
+  container.innerHTML = state.aiMessages.map((msg, idx) => {
+    const isUser = msg.role === 'user';
+    const actionsHtml = (msg.actions && msg.actions.length > 0)
+      ? `<div class="m3-ai-actions-row">
+          ${msg.actions.map((act) => `
+            <span class="m3-ai-tool-pill">
+              <span class="material-symbols-rounded" style="font-size:14px;">bolt</span>
+              ${escapeHtml(act.label)}
+            </span>
+          `).join('')}
+        </div>`
+      : '';
+
+    const docBtnHtml = msg.documentCreated
+      ? `<div style="margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--md-sys-color-outline-variant); display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="m3-btn m3-btn-filled m3-btn-sm" onclick="openDocumentPreview(${msg.documentCreated.id})">
+            <span class="material-symbols-rounded" style="font-size:16px;">visibility</span>
+            <span>Visualiser le PDF généré (${escapeHtml(msg.documentCreated.label)})</span>
+          </button>
+          <a href="/api/documents/${msg.documentCreated.id}/download" class="m3-btn m3-btn-tonal m3-btn-sm">
+            <span class="material-symbols-rounded" style="font-size:16px;">download</span>
+            <span>Télécharger</span>
+          </a>
+        </div>`
+      : '';
+
+    const footerHtml = (!isUser && !msg.isPending)
+      ? `<div class="m3-ai-turn-footer">
+          <button type="button" class="m3-ai-copy-btn" onclick="copyAiResponse(${idx})">
+            <span class="material-symbols-rounded" style="font-size:14px;">content_copy</span>
+            <span>Copier</span>
+          </button>
+          ${msg.warning ? `<span style="font-size:11px; color:var(--md-sys-color-on-surface-variant);">⚡ Mode autonome local actif</span>` : ''}
+        </div>`
+      : '';
+
+    return `
+      <div class="m3-ai-turn ${isUser ? 'user' : 'assistant'}">
+        ${!isUser ? `
+          <div class="m3-ai-turn-avatar">
+            <span class="material-symbols-rounded filled" style="font-size:18px;">auto_awesome</span>
+          </div>
+        ` : ''}
+        <div class="m3-ai-turn-content">
+          ${actionsHtml}
+          <div class="m3-ai-bubble">
+            ${formatAiMarkdown(msg.content)}
+            ${docBtnHtml}
+          </div>
+          ${footerHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+async function copyAiResponse(idx) {
+  const msg = state.aiMessages[idx];
+  if (!msg || !msg.content) return;
+  try {
+    await navigator.clipboard.writeText(msg.content);
+    showSnackbar('Réponse copiée dans le presse-papiers !');
+  } catch {
+    showSnackbar('Impossible de copier automatiquement');
+  }
+}
+
+async function sendAiMessage(text) {
+  const trimmed = String(text || '').trim();
+  if (!trimmed || state.aiSending) return;
+
+  state.aiSending = true;
+  const sendBtn = document.getElementById('btn-ai-send');
+  const inputEl = document.getElementById('ai-chat-input');
+  if (inputEl) inputEl.value = '';
+  if (sendBtn) sendBtn.disabled = true;
+
+  state.aiMessages.push({ role: 'user', content: trimmed });
+  state.aiMessages.push({
+    role: 'assistant',
+    content: '✨ *Analyse de vos candidatures et génération en cours...*',
+    isPending: true
+  });
+  renderAiMessages();
+
+  const focusSelect = document.getElementById('ai-focus-app');
+  const focusAppId = focusSelect && focusSelect.value ? Number(focusSelect.value) : null;
+
+  try {
+    const historyPayload = state.aiMessages
+      .filter((m) => !m.isPending)
+      .slice(-10)
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    const res = await apiFetch('/api/ai/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        messages: historyPayload,
+        focusAppId
+      })
+    });
+
+    state.aiMessages = state.aiMessages.filter((m) => !m.isPending);
+    state.aiMessages.push({
+      role: 'assistant',
+      content: res.reply || 'Opération effectuée.',
+      actions: res.actions || [],
+      documentCreated: res.documentCreated || null,
+      warning: res.warning || null
+    });
+
+    if (res.mutated) {
+      await refreshAllData();
+    }
+    renderAiMessages();
+  } catch (err) {
+    state.aiMessages = state.aiMessages.filter((m) => !m.isPending);
+    state.aiMessages.push({
+      role: 'assistant',
+      content: `❌ Erreur : ${err.message}`
+    });
+    renderAiMessages();
+  } finally {
+    state.aiSending = false;
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+
+function launchAiForApp(appId, actionType) {
+  closeApplicationSheet();
+  switchView('agent');
+
+  const focusSelect = document.getElementById('ai-focus-app');
+  if (focusSelect) {
+    focusSelect.value = String(appId);
+    if (typeof focusSelect._m3Sync === 'function') focusSelect._m3Sync();
+  }
+  renderAiContextCard();
+
+  const app = state.applications.find((a) => Number(a.id) === Number(appId));
+  const label = app ? `${app.company} (${app.role})` : `la candidature #${appId}`;
+
+  if (actionType === 'followup') {
+    sendAiMessage(`Rédige un email de relance professionnel et un message LinkedIn court pour ma candidature chez ${label}.`);
+  } else if (actionType === 'coach') {
+    sendAiMessage(`Prépare-moi à l'entretien technique et RH pour ma candidature chez ${label} (questions probables, pitch et questions à poser).`);
+  } else if (actionType === 'cover_letter') {
+    sendAiMessage(`Génère une lettre de motivation personnalisée pour ma candidature chez ${label} et enregistre-la automatiquement en PDF dans mes documents.`);
+  }
+}
+
+async function handleExtractJobOffer(autoCreate = false) {
+  const textarea = document.getElementById('ai-extract-textarea');
+  const text = textarea ? textarea.value.trim() : '';
+  if (!text) {
+    showSnackbar('Collez d’abord le texte d’une annonce d’emploi ou d’alternance');
+    if (textarea) textarea.focus();
+    return;
+  }
+
+  const btnPrefill = document.getElementById('btn-ai-extract-prefill');
+  const btnCreate = document.getElementById('btn-ai-extract-create');
+  if (btnPrefill) btnPrefill.disabled = true;
+  if (btnCreate) btnCreate.disabled = true;
+
+  try {
+    const res = await apiFetch('/api/ai/extract-job', {
+      method: 'POST',
+      body: JSON.stringify({ text, autoCreate })
+    });
+
+    if (autoCreate && res.created) {
+      textarea.value = '';
+      showSnackbar(`✨ Candidature "${res.created.company} — ${res.created.role}" créée par l'IA !`);
+      await refreshAllData();
+      openApplicationSheet(res.created.id);
+    } else if (res.extracted) {
+      const ex = res.extracted;
+      openNewApplicationDialog();
+      document.getElementById('app-dialog-title').textContent = '✨ Candidature extraite par l’IA';
+      document.getElementById('app-company').value = ex.company || '';
+      document.getElementById('app-role').value = ex.role || '';
+      document.getElementById('app-type').value = ex.type || 'alternance';
+      document.getElementById('app-status').value = 'applied';
+      document.getElementById('app-location').value = ex.location || '';
+      document.getElementById('app-work-mode').value = ex.work_mode || 'hybrid';
+      document.getElementById('app-salary').value = ex.salary || '';
+      document.getElementById('app-rhythm').value = ex.rhythm || '';
+      document.getElementById('app-contact-name').value = ex.contact_name || '';
+      document.getElementById('app-contact-email').value = ex.contact_email || '';
+      document.getElementById('app-notes').value = ex.notes || '';
+      syncAllM3Selects();
+      showSnackbar('Formulaire pré-rempli par l’IA ! Vérifiez et validez.');
+    }
+  } catch (err) {
+    showSnackbar(`Erreur d'extraction : ${err.message}`);
+  } finally {
+    if (btnPrefill) btnPrefill.disabled = false;
+    if (btnCreate) btnCreate.disabled = false;
+  }
+}
+
+/* ==========================================================================
    Event Listeners Initialization
    ========================================================================== */
 document.addEventListener('DOMContentLoaded', () => {
@@ -1368,6 +1811,8 @@ document.addEventListener('DOMContentLoaded', () => {
   enhanceM3Selects();
   enhanceM3FileInputs();
   refreshAllData();
+  loadAiSettings();
+  renderAiMessages();
 
   document.addEventListener('click', () => {
     closeAllM3Dropdowns();
@@ -1640,6 +2085,143 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // AI Agent Studio Event Listeners
+  const aiSettingsBackdrop = document.getElementById('ai-settings-backdrop');
+  const openAiSettings = () => {
+    if (aiSettingsBackdrop) aiSettingsBackdrop.classList.add('open');
+  };
+  const closeAiSettings = () => {
+    if (aiSettingsBackdrop) aiSettingsBackdrop.classList.remove('open');
+  };
+
+  const btnOpenAiSettings = document.getElementById('btn-open-ai-settings');
+  if (btnOpenAiSettings) btnOpenAiSettings.addEventListener('click', openAiSettings);
+  const btnOpenAiSettingsSec = document.getElementById('btn-open-ai-settings-secondary');
+  if (btnOpenAiSettingsSec) btnOpenAiSettingsSec.addEventListener('click', openAiSettings);
+  const btnCloseAiSettings = document.getElementById('btn-close-ai-settings');
+  if (btnCloseAiSettings) btnCloseAiSettings.addEventListener('click', closeAiSettings);
+  if (aiSettingsBackdrop) {
+    aiSettingsBackdrop.addEventListener('click', (e) => {
+      if (e.target === aiSettingsBackdrop) closeAiSettings();
+    });
+  }
+
+  const aiFocusSelect = document.getElementById('ai-focus-app');
+  if (aiFocusSelect) {
+    aiFocusSelect.addEventListener('change', () => {
+      renderAiContextCard();
+    });
+  }
+
+  const aiChatForm = document.getElementById('ai-chat-form');
+  if (aiChatForm) {
+    aiChatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const inp = document.getElementById('ai-chat-input');
+      if (inp && inp.value.trim()) {
+        sendAiMessage(inp.value);
+      }
+    });
+  }
+
+  document.querySelectorAll('#ai-quick-prompts .m3-ai-suggestion-pill').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      sendAiMessage(chip.dataset.prompt);
+    });
+  });
+
+  const btnClearChat = document.getElementById('btn-ai-clear-chat');
+  if (btnClearChat) {
+    btnClearChat.addEventListener('click', () => {
+      state.aiMessages = [];
+      renderAiMessages();
+      showSnackbar('Nouvelle session IA démarrée');
+    });
+  }
+
+  const btnSampleOffer = document.getElementById('btn-ai-sample-offer');
+  if (btnSampleOffer) {
+    btnSampleOffer.addEventListener('click', () => {
+      const ta = document.getElementById('ai-extract-textarea');
+      if (ta) {
+        ta.value =
+          `Entreprise : Datadog\n` +
+          `Poste : Alternance Développeur Fullstack Node.js & React (H/F)\n` +
+          `Lieu : Paris (Mode Hybride - 2j de télétravail)\n` +
+          `Rémunération : 1 850 € / mois\n` +
+          `Rythme : 3 semaines entreprise / 1 semaine école (12 ou 24 mois)\n` +
+          `Contact : recrutement.fr@datadoghq.com\n` +
+          `Stack : TypeScript, Node.js, React, PostgreSQL, Docker, Cloud AWS.`;
+        ta.focus();
+      }
+    });
+  }
+
+  const btnExtractPrefill = document.getElementById('btn-ai-extract-prefill');
+  if (btnExtractPrefill) {
+    btnExtractPrefill.addEventListener('click', () => handleExtractJobOffer(false));
+  }
+
+  const btnExtractCreate = document.getElementById('btn-ai-extract-create');
+  if (btnExtractCreate) {
+    btnExtractCreate.addEventListener('click', () => handleExtractJobOffer(true));
+  }
+
+  document.querySelectorAll('#ai-provider-presets .m3-ai-preset-chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      document.getElementById('ai-base-url').value = chip.dataset.base;
+      document.getElementById('ai-model').value = chip.dataset.model;
+      showSnackbar(`Pré-réglage ${chip.textContent.trim()} appliqué`);
+    });
+  });
+
+  const btnClearKey = document.getElementById('btn-ai-clear-key');
+  if (btnClearKey) {
+    btnClearKey.addEventListener('click', async () => {
+      try {
+        document.getElementById('ai-api-key').value = '';
+        const saved = await apiFetch('/api/ai/settings', {
+          method: 'PUT',
+          body: JSON.stringify({ api_key: '' })
+        });
+        state.aiSettings = saved;
+        updateAiProviderBadge();
+        closeAiSettings();
+        showSnackbar('Mode autonome sans clé activé');
+      } catch (err) {
+        showSnackbar(`Erreur : ${err.message}`);
+      }
+    });
+  }
+
+  const aiSettingsForm = document.getElementById('ai-settings-form');
+  if (aiSettingsForm) {
+    aiSettingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          base_url: document.getElementById('ai-base-url').value,
+          api_key: document.getElementById('ai-api-key').value,
+          model: document.getElementById('ai-model').value,
+          candidate_name: document.getElementById('ai-candidate-name').value,
+          candidate_profile: document.getElementById('ai-candidate-profile').value
+        };
+        const saved = await apiFetch('/api/ai/settings', {
+          method: 'PUT',
+          body: JSON.stringify(payload)
+        });
+        state.aiSettings = saved;
+        document.getElementById('ai-api-key').value = saved.api_key || '';
+        updateAiProviderBadge();
+        if (state.aiMessages.length === 0) renderAiMessages();
+        closeAiSettings();
+        showSnackbar('Configuration IA enregistrée !');
+      } catch (err) {
+        showSnackbar(`Erreur : ${err.message}`);
+      }
+    });
+  }
+
   // Global Keyboard Shortcuts
   document.addEventListener('keydown', (e) => {
     const tag = (e.target.tagName || '').toLowerCase();
@@ -1651,6 +2233,7 @@ document.addEventListener('DOMContentLoaded', () => {
       closeApplicationDialog();
       docBackdrop.classList.remove('open');
       ieBackdrop.classList.remove('open');
+      closeAiSettings();
       closeApplicationSheet();
       return;
     }
@@ -1676,4 +2259,8 @@ window.openDocumentPreview = openDocumentPreview;
 window.closeDocumentPreview = closeDocumentPreview;
 window.openEditDocumentDialog = openEditDocumentDialog;
 window.switchView = switchView;
+window.launchAiForApp = launchAiForApp;
+window.copyAiResponse = copyAiResponse;
+
+
 

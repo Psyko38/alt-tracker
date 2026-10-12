@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('node:path');
 const fs = require('node:fs');
 const { createDatabase } = require('./db');
+const { runAgentChat, extractJobOffer } = require('./ai-agent');
 
 function createApp(customDbPath) {
   const app = express();
@@ -243,6 +244,53 @@ function createApp(customDbPath) {
         imported_count: imported.length,
         applications: imported
       });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // --- AI Agent (OpenAI Compatible + Local Autonomous Fallback) ---
+  app.get('/api/ai/settings', (_req, res) => {
+    try {
+      const s = store.getAiSettings();
+      res.json({
+        ...s,
+        api_key: s.has_api_key ? '••••••••' : ''
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.put('/api/ai/settings', (req, res) => {
+    try {
+      const s = store.saveAiSettings(req.body || {});
+      res.json({
+        ...s,
+        api_key: s.has_api_key ? '••••••••' : ''
+      });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/ai/chat', async (req, res) => {
+    try {
+      const result = await runAgentChat(store, req.body || {});
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post('/api/ai/extract-job', async (req, res) => {
+    try {
+      const { text, autoCreate } = req.body || {};
+      if (!text || !String(text).trim()) {
+        return res.status(400).json({ error: 'Veuillez coller le texte d’une offre d’emploi.' });
+      }
+      const result = await extractJobOffer(store, text, Boolean(autoCreate));
+      res.json(result);
     } catch (err) {
       res.status(500).json({ error: err.message });
     }

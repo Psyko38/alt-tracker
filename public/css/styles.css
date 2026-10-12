@@ -1602,8 +1602,681 @@ input[type="file"]::file-selector-button:hover {
 }
 
 /* ==========================================================================
+   M3 AI Agent Studio (Gemini-Inspired Copilot, Bento Hero & Smart Job Parser)
+   ========================================================================== */
+.m3-ai-studio {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+  min-height: calc(100vh - 140px);
+}
+
+.m3-ai-chat-surface {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 140px);
+  min-height: 620px;
+  max-height: 860px;
+  background:
+    radial-gradient(
+      circle at 12% 0%,
+      color-mix(in srgb, var(--md-sys-color-primary-container) 34%, transparent) 0%,
+      transparent 52%
+    ),
+    radial-gradient(
+      circle at 90% 100%,
+      color-mix(in srgb, var(--md-sys-color-tertiary-container) 26%, transparent) 0%,
+      transparent 48%
+    ),
+    var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.m3-ai-studio-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 24px;
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container) 82%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  flex-wrap: wrap;
+}
+
+.m3-ai-brand-cluster {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.m3-ai-orb {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+  color: var(--md-sys-color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--md-sys-color-primary) 35%, transparent);
+}
+
+.m3-ai-studio-title {
+  font-family: 'Outfit', var(--md-font-family);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.m3-ai-studio-sub {
+  font-size: 12.5px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-top: 2px;
+}
+
+.m3-ai-model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 24%, transparent);
+  font-family: var(--md-font-family);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.m3-ai-model-pill:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.m3-ai-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22);
+}
+
+.m3-ai-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Stream & Gemini Hero Empty State */
+.m3-ai-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.m3-ai-hero {
+  margin: auto 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 8px;
+}
+
+.m3-ai-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 14px;
+}
+
+.m3-ai-hero-heading {
+  font-family: 'Outfit', var(--md-font-family);
+  font-size: clamp(22px, 2.3vw, 28px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: linear-gradient(120deg, var(--md-sys-color-on-surface) 20%, var(--md-sys-color-primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+
+.m3-ai-hero-desc {
+  max-width: 580px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--md-sys-color-on-surface-variant);
+  margin-bottom: 22px;
+}
+
+.m3-ai-bento-prompts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+  max-width: 720px;
+  text-align: left;
+}
+
+.m3-ai-bento-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-font-family);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.m3-ai-bento-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-surface-container-high);
+  box-shadow: var(--md-sys-elevation-2);
+}
+
+.m3-ai-bento-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.m3-ai-bento-card:hover .m3-ai-bento-icon {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+}
+
+.m3-ai-bento-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.m3-ai-bento-text strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface);
+}
+
+.m3-ai-bento-text span {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.m3-ai-bento-arrow {
+  font-size: 17px;
+  color: var(--md-sys-color-outline);
+  transition: transform 160ms ease, color 160ms ease;
+}
+
+.m3-ai-bento-card:hover .m3-ai-bento-arrow {
+  transform: translate(2px, -2px);
+  color: var(--md-sys-color-primary);
+}
+
+/* Conversation Turns */
+.m3-ai-turn {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  animation: m3MenuFadeIn 180ms ease;
+}
+
+.m3-ai-turn.user {
+  justify-content: flex-end;
+}
+
+.m3-ai-turn.assistant {
+  justify-content: flex-start;
+}
+
+.m3-ai-turn-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--md-sys-color-primary), var(--md-sys-color-tertiary));
+  color: var(--md-sys-color-on-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.m3-ai-turn-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(86%, 680px);
+}
+
+.m3-ai-bubble {
+  padding: 15px 18px;
+  border-radius: 22px;
+  font-size: 13.8px;
+  line-height: 1.6;
+  word-break: break-word;
+}
+
+.m3-ai-turn.user .m3-ai-bubble {
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  border-bottom-right-radius: 6px;
+  font-weight: 500;
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.m3-ai-turn.assistant .m3-ai-bubble {
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-top-left-radius: 6px;
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.m3-ai-bubble strong {
+  font-weight: 700;
+}
+
+.m3-ai-bubble pre,
+.m3-ai-bubble code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12.5px;
+}
+
+.m3-ai-bubble pre {
+  background-color: var(--md-sys-color-surface-container-highest);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  padding: 12px 14px;
+  border-radius: 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+  white-space: pre-wrap;
+}
+
+.m3-ai-turn-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.m3-ai-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--md-font-family);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.m3-ai-copy-btn:hover {
+  border-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-primary);
+}
+
+.m3-ai-actions-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.m3-ai-tool-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+/* Floating Bottom Composer Dock */
+.m3-ai-dock {
+  padding: 12px 22px 18px;
+  background: linear-gradient(
+    to top,
+    var(--md-sys-color-surface-container-low) 75%,
+    transparent
+  );
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.m3-ai-quick-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.m3-ai-suggestion-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--md-font-family);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.m3-ai-suggestion-pill .material-symbols-rounded {
+  font-size: 16px;
+  color: var(--md-sys-color-primary);
+}
+
+.m3-ai-suggestion-pill:hover {
+  border-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  transform: translateY(-1px);
+}
+
+.m3-ai-composer-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 16px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-surface-container-high);
+  border: 1.5px solid var(--md-sys-color-outline-variant);
+  box-shadow: var(--md-sys-elevation-2);
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.m3-ai-composer-pill:focus-within {
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary-container) 65%, transparent);
+}
+
+.m3-ai-composer-icon {
+  color: var(--md-sys-color-primary);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.m3-ai-composer-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-font-family);
+  font-size: 14px;
+  padding: 8px 4px;
+  outline: none;
+}
+
+.m3-ai-composer-input::placeholder {
+  color: var(--md-sys-color-on-surface-variant);
+  opacity: 0.8;
+}
+
+.m3-ai-send-btn {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: none;
+  background-color: var(--md-sys-color-primary);
+  color: var(--md-sys-color-on-primary);
+  font-family: var(--md-font-family);
+  font-size: 13.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.m3-ai-send-btn:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+
+/* Right Column: Focus Context & Smart Job Parser Studio */
+.m3-ai-side-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.m3-ai-side-card {
+  background-color: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 26px;
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--md-sys-elevation-1);
+}
+
+.m3-ai-side-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.m3-ai-side-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background-color: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.m3-ai-side-icon.tertiary {
+  background-color: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.m3-ai-side-title {
+  font-family: 'Outfit', var(--md-font-family);
+  font-size: 16.5px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.m3-ai-side-sub {
+  font-size: 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  margin: 2px 0 0;
+}
+
+.m3-ai-context-body {
+  background-color: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 18px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.m3-ai-sample-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 11px;
+  border-radius: var(--md-sys-shape-corner-full);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+  border: none;
+  font-family: var(--md-font-family);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 140ms ease;
+}
+
+.m3-ai-sample-pill:hover {
+  filter: brightness(0.95);
+}
+
+.m3-ai-extractor-box {
+  background-color: var(--md-sys-color-surface-container-lowest);
+  border: 1.5px dashed var(--md-sys-color-outline);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.m3-ai-extractor-box:focus-within {
+  border-style: solid;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--md-sys-color-primary-container) 50%, transparent);
+}
+
+.m3-ai-extractor-textarea {
+  width: 100%;
+  min-height: 138px;
+  border: none;
+  background: transparent;
+  color: var(--md-sys-color-on-surface);
+  font-family: var(--md-font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.m3-ai-extractor-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.m3-ai-extractor-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--md-sys-color-on-surface-variant);
+  background-color: var(--md-sys-color-surface-container);
+  padding: 3px 9px;
+  border-radius: var(--md-sys-shape-corner-full);
+}
+
+.m3-ai-extractor-tags .material-symbols-rounded {
+  font-size: 13px;
+  color: var(--md-sys-color-primary);
+}
+
+.m3-ai-extractor-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.m3-ai-preset-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.m3-ai-preset-chip {
+  height: 32px;
+  padding: 0 13px;
+  border-radius: var(--md-sys-shape-corner-full);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface-variant);
+  font-family: var(--md-font-family);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.m3-ai-preset-chip:hover {
+  border-color: var(--md-sys-color-primary);
+  background-color: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+
+/* ==========================================================================
    Responsive Design (Tablet & Mobile Bottom Navigation Bar)
    ========================================================================== */
+@media (max-width: 1150px) {
+  .m3-ai-studio {
+    grid-template-columns: 1fr;
+  }
+
+  .m3-ai-bento-prompts {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1024px) {
   .m3-dashboard-grid {
     grid-template-columns: 1fr;
