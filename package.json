@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "mcp": "node src/mcp-server.js",
     "test": "node --test tests/api.test.js"
   },
   "dependencies": {

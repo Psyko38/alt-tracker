@@ -1914,6 +1914,170 @@ input[type="file"]::file-selector-button:hover {
   font-weight: 700;
 }
 
+.m3-ai-bubble em {
+  font-style: italic;
+}
+
+/* Rich Markdown Elements inside AI Bubbles (MD3 Theme) */
+.m3-md-h1,
+.m3-md-h2,
+.m3-md-h3,
+.m3-md-h4 {
+  font-family: 'Outfit', var(--md-font-family);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--md-sys-color-on-surface);
+  line-height: 1.3;
+}
+
+.m3-md-h1 {
+  font-size: 18.5px;
+  margin: 4px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+
+.m3-md-h2 {
+  font-size: 16px;
+  margin: 16px 0 8px;
+  color: var(--md-sys-color-primary);
+}
+
+.m3-md-h3 {
+  font-size: 14.5px;
+  margin: 13px 0 6px;
+}
+
+.m3-md-h4 {
+  font-size: 13.5px;
+  margin: 10px 0 4px;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.m3-ai-bubble > :first-child {
+  margin-top: 0 !important;
+}
+
+.m3-ai-bubble > :last-child {
+  margin-bottom: 0 !important;
+}
+
+.m3-md-p {
+  margin: 8px 0;
+  line-height: 1.62;
+}
+
+.m3-md-hr {
+  border: none;
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  margin: 14px 0;
+  opacity: 0.85;
+}
+
+.m3-md-list {
+  margin: 8px 0 10px;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.m3-md-list li {
+  line-height: 1.55;
+}
+
+.m3-md-list li::marker {
+  color: var(--md-sys-color-primary);
+  font-weight: 700;
+}
+
+.m3-md-blockquote {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-left: 3.5px solid var(--md-sys-color-primary);
+  background-color: color-mix(in srgb, var(--md-sys-color-primary-container) 28%, var(--md-sys-color-surface-container-high));
+  border-radius: 0 12px 12px 0;
+  color: var(--md-sys-color-on-surface);
+  font-size: 13.2px;
+}
+
+.m3-md-table-wrap {
+  margin: 12px 0;
+  border-radius: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  overflow-x: auto;
+  background-color: var(--md-sys-color-surface-container-lowest);
+}
+
+.m3-md-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.8px;
+  text-align: left;
+}
+
+.m3-md-table thead th {
+  background-color: var(--md-sys-color-surface-container-high);
+  color: var(--md-sys-color-on-surface);
+  font-weight: 700;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  white-space: nowrap;
+}
+
+.m3-md-table tbody td {
+  padding: 8px 13px;
+  border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 55%, transparent);
+  color: var(--md-sys-color-on-surface);
+  vertical-align: middle;
+}
+
+.m3-md-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.m3-md-table tbody tr:nth-child(even) {
+  background-color: color-mix(in srgb, var(--md-sys-color-surface-container) 55%, transparent);
+}
+
+.m3-md-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background-color: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-primary);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 70%, transparent);
+}
+
+.m3-ai-turn.user .m3-md-inline-code {
+  background-color: rgba(255, 255, 255, 0.18);
+  color: var(--md-sys-color-on-primary);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.m3-md-codeblock {
+  margin: 12px 0;
+  border-radius: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  background-color: var(--md-sys-color-surface-container-lowest);
+  overflow: hidden;
+}
+
+.m3-md-codeblock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  background-color: var(--md-sys-color-surface-container-high);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--md-sys-color-on-surface-variant);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .m3-ai-bubble pre,
 .m3-ai-bubble code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1928,6 +2092,24 @@ input[type="file"]::file-selector-button:hover {
   overflow-x: auto;
   margin: 10px 0;
   white-space: pre-wrap;
+}
+
+.m3-md-codeblock pre {
+  margin: 0;
+  border: none;
+  border-radius: 0;
+  background-color: transparent;
+}
+
+.m3-md-link {
+  color: var(--md-sys-color-primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.m3-ai-turn.user .m3-md-link {
+  color: var(--md-sys-color-on-primary);
 }
 
 .m3-ai-turn-footer {

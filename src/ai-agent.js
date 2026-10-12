@@ -1,241 +1,15 @@
 const { STATUS_LABELS, TYPE_LABELS } = require('./db');
-
-const AGENT_TOOLS = [
-  {
-    type: 'function',
-    function: {
-      name: 'list_applications',
-      description: 'Rechercher et filtrer les candidatures (par type de contrat, statut, recherche texte ou relances à faire).',
-      parameters: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['all', 'alternance', 'job', 'stage', 'freelance', 'autre'],
-            description: 'Filtrer par type de contrat'
-          },
-          status: {
-            type: 'string',
-            enum: ['all', 'draft', 'applied', 'interview', 'technical', 'offer', 'rejected'],
-            description: 'Filtrer par statut'
-          },
-          search: {
-            type: 'string',
-            description: 'Mot-clé (entreprise, poste, ville)'
-          },
-          due_followup: {
-            type: 'boolean',
-            description: 'Si true, retourne uniquement les candidatures à relancer'
-          }
-        }
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'create_application',
-      description: 'Créer une nouvelle candidature dans la base de données Alt-Tracker.',
-      parameters: {
-        type: 'object',
-        properties: {
-          company: { type: 'string', description: 'Nom de l’entreprise' },
-          role: { type: 'string', description: 'Intitulé du poste' },
-          type: {
-            type: 'string',
-            enum: ['alternance', 'job', 'stage', 'freelance', 'autre'],
-            description: 'Type de contrat'
-          },
-          status: {
-            type: 'string',
-            enum: ['draft', 'applied', 'interview', 'technical', 'offer', 'rejected'],
-            description: 'Statut initial'
-          },
-          priority: {
-            type: 'string',
-            enum: ['high', 'medium', 'low']
-          },
-          location: { type: 'string', description: 'Ville ou localisation' },
-          work_mode: {
-            type: 'string',
-            enum: ['hybrid', 'onsite', 'remote']
-          },
-          salary: { type: 'string', description: 'Salaire ou rémunération' },
-          rhythm: { type: 'string', description: 'Rythme d’alternance ou durée' },
-          job_url: { type: 'string', description: 'Lien de l’annonce' },
-          contact_name: { type: 'string', description: 'Nom du contact recruteur' },
-          contact_email: { type: 'string', description: 'Email du contact recruteur' },
-          notes: { type: 'string', description: 'Notes sur l’offre ou l’entreprise' }
-        },
-        required: ['company', 'role']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'update_application',
-      description: 'Mettre à jour le statut, les dates ou les notes d’une candidature existante.',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', description: 'ID de la candidature' },
-          status: {
-            type: 'string',
-            enum: ['draft', 'applied', 'interview', 'technical', 'offer', 'rejected']
-          },
-          priority: { type: 'string', enum: ['high', 'medium', 'low'] },
-          location: { type: 'string' },
-          salary: { type: 'string' },
-          follow_up_date: { type: 'string', description: 'Date de relance YYYY-MM-DD' },
-          interview_date: { type: 'string', description: 'Date entretien YYYY-MM-DDTHH:mm' },
-          contact_name: { type: 'string' },
-          contact_email: { type: 'string' },
-          notes: { type: 'string' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'mark_follow_up_done',
-      description: 'Marquer une relance comme effectuée aujourd’hui et programmer la prochaine relance.',
-      parameters: {
-        type: 'object',
-        properties: {
-          id: { type: 'number', description: 'ID de la candidature' },
-          note: { type: 'string', description: 'Note décrivant la relance' },
-          nextFollowUpDays: { type: 'number', description: 'Nombre de jours avant prochaine relance (par défaut 7)' }
-        },
-        required: ['id']
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'get_dashboard_stats',
-      description: 'Obtenir les statistiques globales du tableau de bord, les relances urgentes et les entretiens à venir.',
-      parameters: {
-        type: 'object',
-        properties: {}
-      }
-    }
-  },
-  {
-    type: 'function',
-    function: {
-      name: 'save_generated_document',
-      description: 'Enregistrer une lettre de motivation ou un document généré directement en PDF dans la bibliothèque CV & LM.',
-      parameters: {
-        type: 'object',
-        properties: {
-          label: { type: 'string', description: 'Titre du document (ex: LM Doctolib Alternance)' },
-          doc_type: { type: 'string', enum: ['cover_letter', 'cv', 'other'] },
-          version_tag: { type: 'string', description: 'Tag de version (ex: IA-v1)' },
-          content: { type: 'string', description: 'Contenu texte intégral de la lettre ou du document à convertir en PDF' }
-        },
-        required: ['label', 'content']
-      }
-    }
-  }
-];
+const { executeMcpToolWithMeta, getOpenAiToolsFromMcp, MCP_TOOLS } = require('./mcp-server');
 
 function executeAgentTool(store, toolName, args = {}) {
-  switch (toolName) {
-    case 'list_applications': {
-      const results = store.listApplications({
-        type: args.type || 'all',
-        status: args.status || 'all',
-        search: args.search || '',
-        due_followup: args.due_followup ? 'true' : undefined
-      });
-      return {
-        actionLabel: `Recherche de candidatures (${results.length} résultat(s))`,
-        mutated: false,
-        data: results.map((a) => ({
-          id: a.id,
-          company: a.company,
-          role: a.role,
-          type: a.type,
-          status: a.status,
-          location: a.location,
-          salary: a.salary,
-          rhythm: a.rhythm,
-          applied_date: a.applied_date,
-          follow_up_date: a.follow_up_date,
-          interview_date: a.interview_date,
-          contact_name: a.contact_name,
-          contact_email: a.contact_email
-        }))
-      };
-    }
-
-    case 'create_application': {
-      const created = store.createApplication(args);
-      return {
-        actionLabel: `Candidature créée : ${created.company} — ${created.role}`,
-        mutated: true,
-        data: created
-      };
-    }
-
-    case 'update_application': {
-      const updated = store.updateApplication(args.id, args);
-      if (!updated) {
-        return { actionLabel: `Candidature #${args.id} introuvable`, mutated: false, data: { error: 'Introuvable' } };
-      }
-      return {
-        actionLabel: `Candidature mise à jour : ${updated.company} (${STATUS_LABELS[updated.status] || updated.status})`,
-        mutated: true,
-        data: updated
-      };
-    }
-
-    case 'mark_follow_up_done': {
-      const updated = store.markFollowUpDone(args.id, {
-        note: args.note || 'Relance enregistrée via l’Agent IA',
-        nextFollowUpDays: args.nextFollowUpDays !== undefined ? args.nextFollowUpDays : 7
-      });
-      if (!updated) {
-        return { actionLabel: `Candidature #${args.id} introuvable`, mutated: false, data: { error: 'Introuvable' } };
-      }
-      return {
-        actionLabel: `Relance validée pour ${updated.company} (+7j)`,
-        mutated: true,
-        data: updated
-      };
-    }
-
-    case 'get_dashboard_stats': {
-      const stats = store.getStats();
-      return {
-        actionLabel: 'Analyse des statistiques du pipeline',
-        mutated: false,
-        data: stats
-      };
-    }
-
-    case 'save_generated_document': {
-      const doc = store.createDocument({
-        label: args.label,
-        doc_type: args.doc_type || 'cover_letter',
-        version_tag: args.version_tag || 'IA-v1',
-        notes: (args.content || '').slice(0, 240),
-        generate_pdf_text: args.content
-      });
-      return {
-        actionLabel: `Document PDF créé : ${doc.label}`,
-        mutated: true,
-        documentCreated: doc,
-        data: doc
-      };
-    }
-
-    default:
-      return { actionLabel: `Outil inconnu : ${toolName}`, mutated: false, data: { error: 'Outil inconnu' } };
+  try {
+    return executeMcpToolWithMeta(store, toolName, args);
+  } catch (err) {
+    return {
+      actionLabel: `MCP · Erreur outil (${toolName})`,
+      mutated: false,
+      data: { error: err.message }
+    };
   }
 }
 
@@ -262,7 +36,7 @@ async function callOpenAICompatible(settings, messages, useTools = true) {
   };
 
   if (useTools) {
-    body.tools = AGENT_TOOLS;
+    body.tools = getOpenAiToolsFromMcp();
     body.tool_choice = 'auto';
   }
 
@@ -306,21 +80,19 @@ function parseJobOfferHeuristic(rawText) {
   const companyMatch =
     text.match(/(?:entreprise|soci[eé]t[eé]|chez|company|client)\s*[:\-–]\s*([^\n,;]+)/i) ||
     text.match(/\bchez\s+([A-ZÀ-Ÿ][A-Za-zÀ-ÿ0-9 &._-]{1,35})/);
-  const roleMatch =
-    text.match(/(?:poste|intitul[eé]|r[oô]le|offre|titre)\s*[:\-–]\s*([^\n]+)/i);
+  const roleMatch = text.match(/(?:poste|intitul[eé]|r[oô]le|offre|titre)\s*[:\-–]\s*([^\n]+)/i);
   const locMatch =
     text.match(/(?:lieu|localisation|ville|bas[eé] [aà])\s*[:\-–]\s*([^\n,;]+)/i) ||
     text.match(/\b(Paris|Lyon|Toulouse|Nantes|Bordeaux|Lille|Marseille|Rennes|Montpellier|Strasbourg|Grenoble|Nice)\b/i);
-  const salaryMatch =
-    text.match(/(\d[\d\s.,]*\s*(?:€|euros?|k€)\s*(?:\/\s*(?:mois|an|jour)|brut)?)/i);
+  const salaryMatch = text.match(/(\d[\d\s.,]*\s*(?:€|euros?|k€)\s*(?:\/\s*(?:mois|an|jour)|brut)?)/i);
   const rhythmMatch =
     text.match(/(?:rythme|dur[eé]e)\s*[:\-–]\s*([^\n]+)/i) ||
     text.match(/(\d\s*(?:jours?|semaines?|mois)\s*\/\s*\d\s*(?:jours?|semaines?|mois))/i);
   const emailMatch = text.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
   const urlMatch = text.match(/(https?:\/\/[^\s)]+)/i);
 
-  const company = companyMatch ? companyMatch[1].trim() : (lines[1] && lines[1].length < 45 ? lines[1] : 'Entreprise à préciser');
-  const role = roleMatch ? roleMatch[1].trim() : (lines[0] ? lines[0].slice(0, 85) : 'Poste à préciser');
+  const company = companyMatch ? companyMatch[1].trim() : lines[1] && lines[1].length < 45 ? lines[1] : 'Entreprise à préciser';
+  const role = roleMatch ? roleMatch[1].trim() : lines[0] ? lines[0].slice(0, 85) : 'Poste à préciser';
 
   return {
     company,
@@ -348,11 +120,13 @@ function runLocalFallbackAgent(store, userPrompt, focusedApp, settings) {
   const candidateName = settings.candidate_name || 'Matteo';
 
   // 1. Creation intent in natural language
-  const createMatch = userPrompt.match(/(?:ajoute|cr[eé]e|enregistre)\s+(?:une\s+)?candidature.*?(?:chez|pour)\s+([A-Za-zÀ-ÿ0-9 &._-]+?)(?:\s+comme|\s+en tant que|\s+pour le poste de|\s+au poste de|\s*[:\-]\s*|$)(.*)/i);
+  const createMatch = userPrompt.match(
+    /(?:ajoute|cr[eé]e|enregistre)\s+(?:une\s+)?candidature.*?(?:chez|pour)\s+([A-Za-zÀ-ÿ0-9 &._-]+?)(?:\s+comme|\s+en tant que|\s+pour le poste de|\s+au poste de|\s*[:\-]\s*|$)(.*)/i
+  );
   if (createMatch && createMatch[1]) {
     const company = createMatch[1].trim();
     const role = (createMatch[2] || '').trim() || 'Développeur Fullstack (Alternance)';
-    const type = /stage/i.test(userPrompt) ? 'stage' : (/cdi|cdd|job/i.test(userPrompt) ? 'job' : 'alternance');
+    const type = /stage/i.test(userPrompt) ? 'stage' : /cdi|cdd|job/i.test(userPrompt) ? 'job' : 'alternance';
     const res = executeAgentTool(store, 'create_application', {
       company,
       role,
@@ -368,7 +142,32 @@ function runLocalFallbackAgent(store, userPrompt, focusedApp, settings) {
     };
   }
 
-  // 2. Follow-up email generation
+  // 2. PDF Report / Cover Page intent
+  if (/rapport pdf|liste.*pdf|page de garde|dossier pdf/i.test(promptLower) && !/lettre de motivation/i.test(promptLower)) {
+    const res = executeAgentTool(store, 'export_applications_pdf_report', {
+      include_cover_page: true,
+      save_to_library: true
+    });
+    actionsExecuted.push(res.actionLabel);
+    const coverSettings = store.getPdfSettings();
+    return {
+      reply:
+        `### 📄 Dossier PDF Officiel généré avec Page de Garde\n\n` +
+        `Votre rapport PDF au format **Paysage A4** a été généré via le moteur MCP :\n\n` +
+        `| Paramètre Page de Garde | Valeur |\n|---|---|\n` +
+        `| **Titre** | ${coverSettings.report_title} |\n` +
+        `| **Candidat** | ${coverSettings.candidate_name} |\n` +
+        `| **École / Formation** | ${coverSettings.school_or_program} |\n` +
+        `| **Période** | ${coverSettings.academic_year} |\n` +
+        `| **Candidatures incluses** | **${apps.length}** |\n\n` +
+        `Cliquez sur le bouton ci-dessous pour **visualiser le rapport PDF et sa page de garde directement dans la page**.`,
+      actions: actionsExecuted,
+      mutated: true,
+      documentCreated: res.documentCreated
+    };
+  }
+
+  // 3. Follow-up email generation
   if (/relance|relancer|mail|email|message linkedin/i.test(promptLower)) {
     const company = targetApp ? targetApp.company : '[Nom de l’entreprise]';
     const role = targetApp ? targetApp.role : '[Intitulé du poste]';
@@ -383,11 +182,12 @@ function runLocalFallbackAgent(store, userPrompt, focusedApp, settings) {
     };
   }
 
-  // 3. Cover letter generation
+  // 4. Cover letter generation
   if (/lettre de motivation|lm\b|pitch|motivation/i.test(promptLower)) {
     const company = targetApp ? targetApp.company : 'votre entreprise';
     const role = targetApp ? targetApp.role : 'Développeur Fullstack';
-    const rhythm = targetApp && targetApp.rhythm ? `Mon rythme (${targetApp.rhythm}) me permet une implication continue sur vos sprints.` : '';
+    const rhythm =
+      targetApp && targetApp.rhythm ? `Mon rythme (${targetApp.rhythm}) me permet une implication continue sur vos sprints.` : '';
 
     const letterContent = [
       `Objet : Candidature au poste de ${role} - ${candidateName}`,
@@ -409,55 +209,74 @@ function runLocalFallbackAgent(store, userPrompt, focusedApp, settings) {
 
     let savedDoc = null;
     if (/enregistre|sauvegarde|pdf/i.test(promptLower) || targetApp) {
-      const toolRes = executeAgentTool(store, 'save_generated_document', {
+      const toolRes = executeAgentTool(store, 'generate_cover_letter_pdf', {
         label: `LM — ${company} (${role.slice(0, 28)})`,
-        doc_type: 'cover_letter',
         version_tag: 'IA-v1',
-        content: letterContent
+        content_text: letterContent,
+        application_id: targetApp ? targetApp.id : undefined
       });
       actionsExecuted.push(toolRes.actionLabel);
       savedDoc = toolRes.documentCreated;
     }
 
     return {
-      reply: `Voici une lettre de motivation sur-mesure pour **${company}** (${role}) :\n\n\`\`\`text\n${letterContent}\n\`\`\`\n\n${savedDoc ? `✅ **Je l’ai également générée en PDF et ajoutée à votre bibliothèque CV & LM** sous le nom **« ${savedDoc.label} »** (vous pouvez cliquer sur *Visualiser dans la page* dans l’onglet CV & LM).` : ''}`,
+      reply: `Voici une lettre de motivation sur-mesure pour **${company}** (${role}) :\n\n\`\`\`text\n${letterContent}\n\`\`\`\n\n${savedDoc ? `✅ **Je l’ai également générée en PDF via MCP et ajoutée à votre bibliothèque CV & LM** sous le nom **« ${savedDoc.label} »**.` : ''}`,
       actions: actionsExecuted,
       mutated: Boolean(savedDoc),
       documentCreated: savedDoc
     };
   }
 
-  // 4. Interview coaching
+  // 5. Interview coaching
   if (/entretien|coach|question|pr[eé]parer|technique/i.test(promptLower)) {
     const company = targetApp ? targetApp.company : 'l’entreprise';
     const role = targetApp ? targetApp.role : 'Développeur Fullstack Node.js';
     return {
-      reply: `### 🎯 Préparation d’entretien — ${company} (${role})\n\nVoici les **5 questions clés** auxquelles vous préparer :\n\n1. **Motivation & Fit Entreprise** : *« Pourquoi avoir choisi ${company} pour votre ${targetApp ? (TYPE_LABELS[targetApp.type] || 'contrat') : 'alternance'} et qu’est-ce qui vous attire dans notre produit ? »*\n   - 💡 *Conseil* : Mentionnez un aspect précis de leur stack ou de leur culture d’ingénierie${targetApp && targetApp.notes ? ` (Note enregistrée : "${targetApp.notes}")` : ''}.\n2. **Architecture Node.js & Asynchronisme** : *« Comment fonctionne l’Event Loop de Node.js et comment gérez-vous les erreurs dans une API REST Express ? »*\n3. **Bases de données & Performance** : *« Comment indexez-vous une table SQL / SQLite pour accélérer les recherches et éviter les requêtes N+1 ? »*\n4. **Qualité & Tests** : *« Comment vérifiez-vous qu’une nouvelle fonctionnalité ne casse pas l’existant ? »*\n   - 💡 *Conseil* : Parlez de votre pratique des tests d’intégration automatisés avec \`node:test\`.\n5. **Questions à poser au recruteur en fin d’entretien** :\n   - *« À quoi ressemblent les 30 premiers jours d’un alternant/développeur dans votre équipe ? »*\n   - *« Comment s’organisent les revues de code (Code Reviews) et le mentorat au quotidien ? »*`,
+      reply: `### 🎯 Préparation d’entretien — ${company} (${role})\n\nVoici les **5 questions clés** auxquelles vous préparer :\n\n1. **Motivation & Fit Entreprise** : *« Pourquoi avoir choisi ${company} pour votre ${targetApp ? TYPE_LABELS[targetApp.type] || 'contrat' : 'alternance'} et qu’est-ce qui vous attire dans notre produit ? »*\n   - 💡 *Conseil* : Mentionnez un aspect précis de leur stack ou de leur culture d’ingénierie${targetApp && targetApp.notes ? ` (Note enregistrée : "${targetApp.notes}")` : ''}.\n2. **Architecture Node.js & Asynchronisme** : *« Comment fonctionne l’Event Loop de Node.js et comment gérez-vous les erreurs dans une API REST Express ? »*\n3. **Bases de données & Performance** : *« Comment indexez-vous une table SQL / SQLite pour accélérer les recherches et éviter les requêtes N+1 ? »*\n4. **Qualité & Tests** : *« Comment vérifiez-vous qu’une nouvelle fonctionnalité ne casse pas l’existant ? »*\n   - 💡 *Conseil* : Parlez de votre pratique des tests d’intégration automatisés avec \`node:test\`.\n5. **Questions à poser au recruteur en fin d’entretien** :\n   - *« À quoi ressemblent les 30 premiers jours d’un alternant/développeur dans votre équipe ? »*\n   - *« Comment s’organisent les revues de code (Code Reviews) et le mentorat au quotidien ? »*`,
       actions: actionsExecuted,
       mutated: false
     };
   }
 
-  // 5. Pipeline & priorities analysis (default)
-  const urgentLines = stats.urgentFollowUps.length > 0
-    ? stats.urgentFollowUps.map((u) => `- **${u.company}** (${u.role}) — Relance prévue le \`${u.follow_up_date}\``).join('\n')
-    : '- Aucune relance en retard aujourd’hui 🎉';
+  // 6. Pipeline & priorities analysis (default)
+  const statTool = executeAgentTool(store, 'get_pipeline_stats', {});
+  actionsExecuted.push(statTool.actionLabel);
 
-  const interviewLines = stats.upcomingInterviews.length > 0
-    ? stats.upcomingInterviews.map((i) => `- **${i.company}** (${i.role}) — Entretien le \`${i.interview_date.replace('T', ' à ')}\``).join('\n')
-    : '- Aucun entretien planifié dans les prochains jours';
+  const urgentLines =
+    stats.urgentFollowUps.length > 0
+      ? stats.urgentFollowUps.map((u) => `- **${u.company}** (${u.role}) — Relance prévue le \`${u.follow_up_date}\``).join('\n')
+      : '- Aucune relance en retard aujourd’hui 🎉';
+
+  const interviewLines =
+    stats.upcomingInterviews.length > 0
+      ? stats.upcomingInterviews
+          .map((i) => `- **${i.company}** (${i.role}) — Entretien le \`${i.interview_date.replace('T', ' à ')}\``)
+          .join('\n')
+      : '- Aucun entretien planifié dans les prochains jours';
 
   return {
-    reply: `### 📊 Synthèse de vos candidatures (${stats.total} au total)\n\n- **En cours** : **${stats.activeCount}** candidatures actives (**${stats.responseRate}%** de taux de retour, **${stats.interviewRate}%** de conversion en entretien)\n- **Répartition** : ${stats.byType.alternance} Alternance(s) · ${stats.byType.job} Job(s) · ${stats.byType.stage} Stage(s)\n- **Offres reçues** : **${stats.offersCount}**\n\n#### 🔔 Relances prioritaires\n${urgentLines}\n\n#### 📅 Prochains entretiens\n${interviewLines}\n\n*Astuce : Sélectionnez une candidature ci-dessus ou demandez-moi de rédiger un mail de relance, une lettre de motivation PDF, ou d’ajouter une nouvelle candidature.*`,
+    reply:
+      `# 📊 Analyse de ton pipeline (${stats.total} candidatures)\n\n` +
+      `| Indicateur | Valeur |\n|---|---|\n` +
+      `| Candidatures totales | **${stats.total}** |\n` +
+      `| Candidatures actives | **${stats.activeCount}** |\n` +
+      `| Taux de retour | **${stats.responseRate}%** |\n` +
+      `| Taux d’entretien | **${stats.interviewRate}%** |\n` +
+      `| Offres reçues | **${stats.offersCount}** |\n\n` +
+      `**Répartition par contrat** : ${stats.byType.alternance || 0} Alternance(s) · ${stats.byType.job || 0} Job(s) · ${stats.byType.stage || 0} Stage(s)\n\n` +
+      `---\n\n` +
+      `## 🔔 Relances prioritaires\n${urgentLines}\n\n` +
+      `## 📅 Prochains entretiens\n${interviewLines}`,
     actions: actionsExecuted,
     mutated: false
   };
 }
 
-async function runAgentChat(store, { messages = [], focusedApplicationId = null }) {
+async function runAgentChat(store, { messages = [], focusedApplicationId = null, focusAppId = null }) {
   const settings = store.getAiSettings();
   const stats = store.getStats();
-  const focusedApp = focusedApplicationId ? store.getApplicationById(focusedApplicationId) : null;
+  const targetFocusId = focusAppId || focusedApplicationId;
+  const focusedApp = targetFocusId ? store.getApplicationById(targetFocusId) : null;
   const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user')?.content || '';
 
   const canUseRemoteLLM = Boolean(settings.api_key && settings.api_key.trim()) || isLocalEndpoint(settings.base_url);
@@ -467,20 +286,25 @@ async function runAgentChat(store, { messages = [], focusedApplicationId = null 
     return {
       ...localResult,
       provider_mode: 'local_autonomous',
-      model: 'Agent Autonome Intégré (Configurez une clé OpenAI/Groq/Mistral/Ollama pour activer un LLM externe)'
+      model: 'Agent Autonome Intégré · Connecté aux 22 Tools MCP'
     };
   }
 
   const systemPrompt = [
-    `Tu es l'Agent IA intégré d'Alt-Tracker, une application Material Design 3.0 de suivi de candidatures (Alternance, Job CDI/CDD, Stage, Freelance).`,
+    `Tu es l'Agent IA intégré d'Alt-Tracker, connecté au serveur Model Context Protocol (MCP) complet de l'application (${MCP_TOOLS.length} outils couvrant 100% de l'application).`,
     `Date du jour : ${new Date().toISOString().slice(0, 10)}.`,
     `Candidat : ${settings.candidate_name} — ${settings.candidate_profile}.`,
     `Résumé actuel du portefeuille : ${stats.total} candidatures (${stats.activeCount} actives, taux de retour ${stats.responseRate}%, ${stats.offersCount} offre(s), ${stats.urgentFollowUps.length} relance(s) urgente(s)).`,
     focusedApp
-      ? `Candidature actuellement sélectionnée par l'utilisateur : ID=${focusedApp.id}, Entreprise="${focusedApp.company}", Poste="${focusedApp.role}", Contrat="${focusedApp.type}", Statut="${focusedApp.status}", Lieu="${focusedApp.location}", Salaire="${focusedApp.salary}", Rythme="${focusedApp.rhythm}", Contact="${focusedApp.contact_name} (${focusedApp.contact_email})", CV="${focusedApp.cv_version}", Notes="${focusedApp.notes}".`
+      ? `Candidature actuellement sélectionnée en focus : ID=${focusedApp.id}, Entreprise="${focusedApp.company}", Poste="${focusedApp.role}", Contrat="${focusedApp.type}", Statut="${focusedApp.status}", Lieu="${focusedApp.location}", Salaire="${focusedApp.salary}", Rythme="${focusedApp.rhythm}", Contact="${focusedApp.contact_name} (${focusedApp.contact_email})", CV="${focusedApp.cv_version}", Notes="${focusedApp.notes}".`
       : `Aucune candidature spécifique sélectionnée en focus.`,
-    `Tu disposes d'outils (functions) pour lister, créer, modifier des candidatures, valider des relances et enregistrer des lettres de motivation en PDF dans la bibliothèque.`,
-    `Réponds toujours en français de manière structurée, chaleureuse, concise et actionnable.`
+    `Tu peux contrôler toute l'application via tes outils MCP :`,
+    `- Candidatures : list_applications, get_application, create_application, update_application, update_application_status, toggle_application_favorite, delete_application`,
+    `- Relances & Timeline : mark_follow_up_done, add_timeline_event`,
+    `- Documents CV & LM : list_documents, get_document, create_document, update_document, delete_document, generate_cover_letter_pdf`,
+    `- Page de Garde & Exports PDF/CSV/JSON : get_pdf_cover_settings, update_pdf_cover_settings, export_applications_pdf_report, export_applications_data, import_applications_data`,
+    `- Statistiques & Profil : get_pipeline_stats, get_or_update_ai_profile`,
+    `Réponds toujours en français en utilisant le formatage Markdown (titres, tableaux, listes, gras).`
   ].join('\n');
 
   const conversation = [
@@ -496,7 +320,7 @@ async function runAgentChat(store, { messages = [], focusedApplicationId = null 
   let documentCreated = null;
 
   try {
-    for (let step = 0; step < 4; step++) {
+    for (let step = 0; step < 5; step++) {
       const completion = await callOpenAICompatible(settings, conversation, true);
       const choice = completion.choices && completion.choices[0];
       const msg = choice ? choice.message : null;
